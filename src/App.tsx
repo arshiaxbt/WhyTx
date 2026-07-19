@@ -107,7 +107,7 @@ function VerifyPage() {
           <div><span>Recorded</span><strong>{displayDate(payload.createdAt)}</strong></div>
           <div><span>Onchain anchor</span><strong>{chainMatch === true ? 'Confirmed' : chainMatch === false ? 'Not found' : 'Not anchored'}</strong></div>
         </div>
-        <a className="tx-link" href={explorerTx(payload.transactionHash)} target="_blank" rel="noreferrer">View original transaction <ExternalLink size={14} /></a>
+        <div className="verify-links"><a className="tx-link" href={explorerTx(payload.transactionHash)} target="_blank" rel="noreferrer">Original transaction <ExternalLink size={14} /></a>{payload.anchorTx && <a className="tx-link" href={explorerTx(payload.anchorTx)} target="_blank" rel="noreferrer">Onchain proof <ExternalLink size={14} /></a>}</div>
         <details><summary>What does this prove?</summary><p>It proves these revealed values match the cryptographic record created at the shown time. It does not prove that the creator's statements are factually true or legally enforceable.</p></details>
       </> : <p>Checking proof…</p>}
     </section>
@@ -173,7 +173,7 @@ function RevealDialog({ record, onClose, onToast }: { record: WhyRecord; onClose
     const payload: RevealPayload = {
       schema: 'whytx.reveal.v1', chainId: monadTestnet.id, contract: WHYTX_ADDRESS,
       creator: version.creator, transactionHash: record.transaction.hash, root: version.root,
-      version: version.version, createdAt: version.createdAt, anchorId: version.anchorId,
+      version: version.version, createdAt: version.createdAt, anchorId: version.anchorId, anchorTx: version.anchorTx,
       fields: chosen.map((field) => ({ field, value: version.values[field], salt: version.salts[field], proof: getProof(tree, field) })),
     }
     const appRoot = new URL(import.meta.env.BASE_URL, window.location.href).href.split('#')[0]
@@ -182,7 +182,7 @@ function RevealDialog({ record, onClose, onToast }: { record: WhyRecord; onClose
     onToast('Private verification link copied')
     onClose()
   }
-  return <div className="modal-backdrop"><section className="reveal-dialog"><button className="close" onClick={onClose}><X /></button><p className="eyebrow">Selective reveal</p><h2>Choose what to show</h2><p>The other details stay hidden. Every chosen field includes a proof that anyone can check.</p><div className="reveal-options">{RECORD_FIELDS.map((field) => <label key={field}><input type="checkbox" checked={chosen.includes(field)} onChange={() => toggle(field)} /><span><strong>{fieldLabels[field]}</strong><small>{version.values[field] || 'Not specified'}</small></span><Check size={15} /></label>)}</div><button className="primary secure-button" disabled={!chosen.length} onClick={share}><Copy size={16} /> Copy verification link</button></section></div>
+  return <div className="modal-backdrop"><section className="reveal-dialog"><button className="close" onClick={onClose}><X /></button><p className="eyebrow">Selective reveal</p><h2>Choose what to show</h2><p>The other details stay hidden. Every chosen field includes a proof that anyone can check.</p><div className="reveal-options">{RECORD_FIELDS.map((field) => <label key={field}><input type="checkbox" checked={chosen.includes(field)} onChange={() => toggle(field)} /><span><strong>{fieldLabels[field]}</strong><small>{version.values[field] || 'Not specified'}</small></span><Check size={15} /></label>)}</div>{record.versions.length > 1 && <div className="version-history"><strong><History size={14} /> Version history</strong>{record.versions.map((item) => <div key={item.id}><span>Version {item.version}</span><small>{displayDate(item.createdAt)}</small><span className={item.anchorId ? 'history-secured' : ''}>{item.anchorId ? 'Secured' : 'Draft'}</span></div>)}</div>}<button className="primary secure-button" disabled={!chosen.length} onClick={share}><Copy size={16} /> Copy verification link</button></section></div>
 }
 
 function Dashboard({ address, vault, setVault, vaultCrypto, disconnect }: {

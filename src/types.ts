@@ -63,5 +63,6 @@ export interface RevealPayload {
   version: number
   createdAt: number
   anchorId?: string
+  anchorTx?: `0x${string}`
   fields: RevealField[]
 }
