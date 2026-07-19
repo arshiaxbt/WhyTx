@@ -6,9 +6,22 @@ const decoder = new TextDecoder()
 export const unlockMessage = (address: string) =>
   `Unlock WhyTx private records\n\nWallet: ${address.toLowerCase()}\n\nThis signature only decrypts data in this browser. It does not create a transaction or cost gas.`
 
-export async function keyFromSignature(signature: string) {
+const encodeKey = (bytes: ArrayBuffer) => btoa(String.fromCharCode(...new Uint8Array(bytes)))
+
+export async function importSessionKey(encoded: string) {
+  const bytes = Uint8Array.from(atob(encoded), (char) => char.charCodeAt(0))
+  if (bytes.length !== 32) throw new Error('Invalid cached vault key')
+  return crypto.subtle.importKey('raw', bytes, 'AES-GCM', false, ['encrypt', 'decrypt'])
+}
+
+export async function keyAndSessionFromSignature(signature: string) {
   const digest = await crypto.subtle.digest('SHA-256', encoder.encode(signature))
-  return crypto.subtle.importKey('raw', digest, 'AES-GCM', false, ['encrypt', 'decrypt'])
+  const encoded = encodeKey(digest)
+  return { key: await importSessionKey(encoded), encoded }
+}
+
+export async function keyFromSignature(signature: string) {
+  return (await keyAndSessionFromSignature(signature)).key
 }
 
 export async function encryptRecords(key: CryptoKey, records: WhyRecord[]) {
@@ -33,3 +46,4 @@ export async function decryptRecords(key: CryptoKey, stored: string): Promise<Wh
 }
 
 export const vaultKey = (address: string) => `whytx:vault:${address.toLowerCase()}`
+export const sessionVaultKey = (address: string) => `whytx:session-key:${address.toLowerCase()}`

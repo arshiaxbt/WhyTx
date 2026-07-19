@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { RevealPayload, WhyRecord } from '../types'
 import { decodeReveal, encodeReveal } from './reveal'
-import { decryptRecords, encryptRecords, keyFromSignature } from './vault'
+import { decryptRecords, encryptRecords, importSessionKey, keyAndSessionFromSignature, keyFromSignature } from './vault'
 
 const records: WhyRecord[] = [{
   transaction: {
@@ -31,6 +31,13 @@ describe('encrypted local vault', () => {
     const second = await keyFromSignature('0xsecond-wallet')
     const encrypted = await encryptRecords(first, records)
     await expect(decryptRecords(second, encrypted)).rejects.toThrow()
+  })
+
+  it('restores the same key for a tab refresh', async () => {
+    const { key, encoded } = await keyAndSessionFromSignature('0xsession-signature')
+    const encrypted = await encryptRecords(key, records)
+    const restored = await importSessionKey(encoded)
+    await expect(decryptRecords(restored, encrypted)).resolves.toEqual(records)
   })
 })
 

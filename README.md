@@ -10,7 +10,7 @@ Built from scratch for the [Spark hackathon](https://buildanything.so/hackathons
 
 ## The working loop
 
-1. Connect a browser or mobile EVM wallet through Reown AppKit and sign a gas-free unlock message.
+1. Connect a browser or mobile EVM wallet through Reown AppKit and sign a gas-free unlock message once per tab session.
 2. Choose Monad Mainnet or Monad Testnet and import a confirmed transaction involving that wallet.
 3. Add a purpose, category, counterparty label, status, follow-up date, and private details.
 4. Encrypt the readable record locally with AES-GCM.
@@ -26,6 +26,7 @@ WhyTx proves that a wallet created a particular cryptographic record at an oncha
 ## Privacy model
 
 - A deterministic wallet signature derives a browser-local AES-256-GCM key.
+- The derived key is cached in `sessionStorage` so a refresh does not require another signature; disconnecting or closing the tab clears the session.
 - Full records and per-field random salts are stored only as ciphertext in `localStorage`.
 - Each record field becomes a salted Merkle leaf. The contract receives only the root, original transaction hash, and previous-version ID.
 - Reveal data is encoded in the URL fragment (`#...`), which browsers do not send to the hosting server.

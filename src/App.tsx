@@ -42,7 +42,7 @@ import { appKitMonad, appKitMonadTestnet } from './lib/appkit'
 import { contractAddress, WHYTX_ABI } from './lib/contract'
 import { buildTree, getProof, randomSalt, verifyProof } from './lib/merkle'
 import { decodeReveal, encodeReveal } from './lib/reveal'
-import { decryptRecords, encryptRecords, keyFromSignature, unlockMessage, vaultKey } from './lib/vault'
+import { decryptRecords, encryptRecords, importSessionKey, keyAndSessionFromSignature, sessionVaultKey, unlockMessage, vaultKey } from './lib/vault'
 import {
   RECORD_FIELDS,
   type ImportedTransaction,
@@ -65,6 +65,11 @@ const fieldLabels: Record<RecordField, string> = {
 const categories = ['Deposit', 'Loan', 'Purchase', 'Freelance payment', 'Investment', 'Refund', 'Gift', 'Shared expense', 'Personal wallet transfer', 'Subscription', 'Other']
 const statuses = ['Open', 'Waiting', 'Completed', 'Repaid', 'Refunded', 'Disputed', 'Cancelled']
 type DashboardView = 'overview' | 'transactions' | 'followups' | 'proofs'
+const dashboardViews: DashboardView[] = ['overview', 'transactions', 'followups', 'proofs']
+const viewFromHash = (): DashboardView => {
+  const candidate = window.location.hash.replace(/^#\/?/, '') as DashboardView
+  return dashboardViews.includes(candidate) ? candidate : 'overview'
+}
 
 const displayDate = (timestamp: number) => new Intl.DateTimeFormat('en', { month: 'short', day: 'numeric', year: 'numeric' }).format(timestamp)
 
@@ -211,7 +216,21 @@ function Dashboard({ address, vault, setVault, vaultCrypto, provider, disconnect
   const [error, setError] = useState('')
   const [toast, setToast] = useState('')
   const [query, setQuery] = useState('')
-  const [view, setView] = useState<DashboardView>('overview')
+  const [view, setView] = useState<DashboardView>(viewFromHash)
+
+  useEffect(() => {
+    if (!dashboardViews.includes(window.location.hash.replace(/^#\/?/, '') as DashboardView)) {
+      window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}#overview`)
+    }
+    const syncView = () => setView(viewFromHash())
+    window.addEventListener('hashchange', syncView)
+    return () => window.removeEventListener('hashchange', syncView)
+  }, [])
+
+  const navigate = (nextView: DashboardView) => {
+    if (view === nextView) return
+    window.location.hash = nextView
+  }
 
   const persist = async (records: WhyRecord[]) => {
     localStorage.setItem(vaultKey(address), await encryptRecords(vaultCrypto, records))
@@ -288,14 +307,14 @@ function Dashboard({ address, vault, setVault, vaultCrypto, provider, disconnect
   const EmptyIcon = emptyCopy.Icon
 
   return <div className="dashboard">
-    <aside><Logo /><nav><button className={view === 'overview' ? 'active' : ''} onClick={() => setView('overview')}><Sparkles /> Overview</button><button className={view === 'transactions' ? 'active' : ''} onClick={() => setView('transactions')}><FileKey2 /> Transactions <span>{vault.length}</span></button><button className={view === 'followups' ? 'active' : ''} onClick={() => setView('followups')}><CalendarClock /> Follow-ups <span>{due}</span></button><button className={view === 'proofs' ? 'active' : ''} onClick={() => setView('proofs')}><ShieldCheck /> Shared proofs <span>{secured}</span></button></nav><div className="aside-proof"><Fingerprint /><strong>Private by default</strong><p>Only salted fingerprints leave this device.</p></div><label className="network-switch"><span>Active network</span><select value={chainId} onChange={(event) => void onSwitchNetwork(Number(event.target.value) as MonadChainId)}><option value={monadMainnet.id}>Monad Mainnet</option><option value={monadTestnet.id}>Monad Testnet</option></select></label><button className="wallet-row" onClick={disconnect}><span className="avatar">{address.slice(2, 4).toUpperCase()}</span><span>{shortAddress(address)}<small>{chainName(chainId)}</small></span><LogOut size={15} /></button></aside>
+    <aside><Logo /><nav><button className={view === 'overview' ? 'active' : ''} onClick={() => navigate('overview')}><Sparkles /> Overview</button><button className={view === 'transactions' ? 'active' : ''} onClick={() => navigate('transactions')}><FileKey2 /> Transactions <span>{vault.length}</span></button><button className={view === 'followups' ? 'active' : ''} onClick={() => navigate('followups')}><CalendarClock /> Follow-ups <span>{due}</span></button><button className={view === 'proofs' ? 'active' : ''} onClick={() => navigate('proofs')}><ShieldCheck /> Shared proofs <span>{secured}</span></button></nav><div className="aside-proof"><Fingerprint /><strong>Private by default</strong><p>Only salted fingerprints leave this device.</p></div><label className="network-switch"><span>Active network</span><select value={chainId} onChange={(event) => void onSwitchNetwork(Number(event.target.value) as MonadChainId)}><option value={monadMainnet.id}>Monad Mainnet</option><option value={monadTestnet.id}>Monad Testnet</option></select></label><button className="wallet-row" onClick={disconnect}><span className="avatar">{address.slice(2, 4).toUpperCase()}</span><span>{shortAddress(address)}<small>{chainName(chainId)}</small></span><LogOut size={15} /></button></aside>
     <main className="workspace">
       <header><div><p className="eyebrow">{currentCopy.eyebrow}</p><h1>{currentCopy.title}</h1><p>{currentCopy.intro}</p></div><button className="primary" onClick={() => setImportOpen(true)}><Plus size={17} /> Add transaction</button></header>
       {view === 'overview' && <section className="stats"><article><span>Secured records</span><strong>{secured}</strong><small><ShieldCheck /> timestamped on Monad</small></article><article><span>Need follow-up</span><strong>{due}</strong><small><CalendarClock /> unresolved records</small></article><article><span>Private drafts</span><strong>{vault.filter((r) => !r.versions.at(-1)?.anchorId).length}</strong><small><LockKeyhole /> encrypted locally</small></article></section>}
       <section className={`records-panel ${view !== 'overview' ? 'standalone-panel' : ''}`}><div className="panel-heading"><div><h2>{currentCopy.panel}</h2><p>{currentCopy.panelIntro}</p></div><label className="search"><Search size={16} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search records" /></label></div>
         {filtered.length ? <div className="record-list">{filtered.map((record) => { const latest = record.versions.at(-1)!; return <article key={`${record.transaction.chainId ?? monadTestnet.id}:${record.transaction.hash}`}>
           <div className="token-icon">{record.transaction.tokenSymbol.slice(0, 1)}</div><div className="record-main"><div><strong>{latest.values.purpose}</strong><span className={latest.anchorId ? 'badge secured' : 'badge'}>{latest.anchorId ? <ShieldCheck size={12} /> : <KeyRound size={12} />}{latest.anchorId ? 'Secured personal record' : 'Private draft'}</span></div><p>{latest.values.counterparty || shortAddress(record.transaction.to ?? record.transaction.from)} · {latest.values.category}</p><div className="meta"><span>{chainName(record.transaction.chainId ?? monadTestnet.id)}</span><span>{displayDate(record.transaction.timestamp)}</span><span>Version {latest.version}</span>{latest.values.followUp && <span><CalendarClock size={12} /> Follow up {latest.values.followUp}</span>}</div></div><div className="record-amount"><strong>{record.transaction.from.toLowerCase() === address.toLowerCase() ? '−' : '+'}{Number(record.transaction.value).toLocaleString(undefined, { maximumFractionDigits: 5 })} {record.transaction.tokenSymbol}</strong><small>{latest.values.status}</small></div><div className="record-actions"><button onClick={() => setRevealing(record)}>Reveal</button><button aria-label="Edit record" onClick={() => setSelected(record.transaction)}><ChevronRight /></button></div>
-        </article> })}</div> : <div className="empty"><div><EmptyIcon /></div><h3>{emptyCopy.title}</h3><p>{emptyCopy.copy}</p><button className="secondary" onClick={() => view === 'followups' || view === 'proofs' ? setView('transactions') : setImportOpen(true)}>{emptyCopy.action}</button></div>}
+        </article> })}</div> : <div className="empty"><div><EmptyIcon /></div><h3>{emptyCopy.title}</h3><p>{emptyCopy.copy}</p><button className="secondary" onClick={() => view === 'followups' || view === 'proofs' ? navigate('transactions') : setImportOpen(true)}>{emptyCopy.action}</button></div>}
       </section>
     </main>
     {importOpen && <div className="modal-backdrop"><form className="import-dialog" onSubmit={doImport}><button type="button" className="close" onClick={() => setImportOpen(false)}><X /></button><div className="dialog-icon"><Import /></div><p className="eyebrow">Live {chainName(chainId)} data</p><h2>Import a transaction</h2><p>Paste a confirmed {chainName(chainId)} transaction involving {shortAddress(address)}. WhyTx validates it directly with the selected network.</p><label>Transaction hash<input autoFocus value={txHash} onChange={(event) => setTxHash(event.target.value)} placeholder="0x…" /></label>{error && <p className="error-message"><CircleAlert size={15} />{error}</p>}<button className="primary secure-button" disabled={busy}>{busy ? 'Checking Monad…' : 'Find transaction'}</button></form></div>}
@@ -319,6 +338,7 @@ export default function App() {
   const [vault, setVault] = useState<WhyRecord[]>([])
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const [restoreAttemptedAddress, setRestoreAttemptedAddress] = useState('')
   const isVerify = useMemo(() => window.location.hash.startsWith('#verify/'), [])
 
   useEffect(() => {
@@ -326,6 +346,32 @@ export default function App() {
       setUnlockedAddress(null); setVaultCrypto(null); setVault([])
     }
   }, [address, unlockedAddress])
+
+  useEffect(() => {
+    if (!address || !walletProvider || vaultCrypto || restoreAttemptedAddress === address.toLowerCase()) return
+    const normalizedAddress = address.toLowerCase()
+    setRestoreAttemptedAddress(normalizedAddress)
+    const cached = sessionStorage.getItem(sessionVaultKey(address))
+    if (!cached) return
+
+    let active = true
+    setBusy(true)
+    const restore = async () => {
+      try {
+        const key = await importSessionKey(cached)
+        const stored = localStorage.getItem(vaultKey(address))
+        const records = stored ? await decryptRecords(key, stored) : []
+        if (!active) return
+        setVault(records); setVaultCrypto(key); setUnlockedAddress(address)
+      } catch {
+        sessionStorage.removeItem(sessionVaultKey(address))
+      } finally {
+        if (active) setBusy(false)
+      }
+    }
+    void restore()
+    return () => { active = false }
+  }, [address, restoreAttemptedAddress, vaultCrypto, walletProvider])
 
   const connect = async () => {
     if (!isConnected || !address || !walletProvider) {
@@ -336,15 +382,17 @@ export default function App() {
     try {
       const provider = walletProvider as EIP1193Provider
       const signature = await walletClient(provider, activeChainId).signMessage({ account: address, message: unlockMessage(address) })
-      const key = await keyFromSignature(signature)
+      const { key, encoded } = await keyAndSessionFromSignature(signature)
       const stored = localStorage.getItem(vaultKey(address))
       setVault(stored ? await decryptRecords(key, stored) : [])
+      sessionStorage.setItem(sessionVaultKey(address), encoded)
       setVaultCrypto(key); setUnlockedAddress(address)
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'Could not unlock the private ledger') }
     finally { setBusy(false) }
   }
 
   const disconnect = async () => {
+    if (address) sessionStorage.removeItem(sessionVaultKey(address))
     setUnlockedAddress(null); setVaultCrypto(null); setVault([])
     await disconnectWallet({ namespace: 'eip155' })
   }
