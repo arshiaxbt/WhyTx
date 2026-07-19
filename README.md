@@ -72,6 +72,7 @@ The build artifact is written to `artifacts/WhyTxRegistry.json`.
 - Contract: [`0x3ccacaa6fa6ca64e1f8f8f8f448f0a5a97581129`](https://testnet.monadscan.com/address/0x3ccacaa6fa6ca64e1f8f8f8f448f0a5a97581129)
 - Deployment transaction: [`0x0e1994fdce64e130d3e00de263b675c4cdf711d25c0e8a82f1b72650b51e3bf9`](https://testnet.monadscan.com/tx/0x0e1994fdce64e130d3e00de263b675c4cdf711d25c0e8a82f1b72650b51e3bf9)
 - Integration test: [`0xbe274c628f38925228e4437c31d5b8697f00aad4201966c4ac94f00ae0b271ed`](https://testnet.monadscan.com/tx/0xbe274c628f38925228e4437c31d5b8697f00aad4201966c4ac94f00ae0b271ed) (event and persisted fields verified)
+- Source verification: [`perfect` match on MonadVision](https://testnet.monadvision.com/address/0x3ccacaa6fa6ca64e1f8f8f8f448f0a5a97581129)
 - Deployment metadata: [`deployments/monad-testnet.json`](deployments/monad-testnet.json)
 
 ## Network

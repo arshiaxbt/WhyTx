@@ -10,6 +10,11 @@
   "solcVersion": "0.8.36+commit.8a079791",
   "sourceCommit": "a0cda87558719c3a9a275f9d06c6e8397cae5994",
   "explorer": "https://testnet.monadscan.com/address/0x3ccacaa6fa6ca64e1f8f8f8f448f0a5a97581129",
+  "sourceVerification": {
+    "provider": "MonadVision Sourcify",
+    "status": "perfect",
+    "url": "https://testnet.monadvision.com/address/0x3ccacaa6fa6ca64e1f8f8f8f448f0a5a97581129"
+  },
   "smokeTest": {
     "transactionHash": "0xbe274c628f38925228e4437c31d5b8697f00aad4201966c4ac94f00ae0b271ed",
     "recordId": "0x2c9af55aeb73f3fdcaca32dab7cabdefca27cf6a525fcd8d80b98692d964098c",
