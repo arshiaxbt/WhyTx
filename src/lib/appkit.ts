@@ -11,6 +11,7 @@ export const appKit = createAppKit({
   adapters: [new EthersAdapter()],
   networks: [appKitMonad, appKitMonadTestnet],
   defaultNetwork: appKitMonad,
+  allowUnsupportedChain: false,
   projectId: REOWN_PROJECT_ID,
   metadata: {
     name: 'WhyTx',

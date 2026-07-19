@@ -64,6 +64,7 @@ const fieldLabels: Record<RecordField, string> = {
 
 const categories = ['Deposit', 'Loan', 'Purchase', 'Freelance payment', 'Investment', 'Refund', 'Gift', 'Shared expense', 'Personal wallet transfer', 'Subscription', 'Other']
 const statuses = ['Open', 'Waiting', 'Completed', 'Repaid', 'Refunded', 'Disputed', 'Cancelled']
+type DashboardView = 'overview' | 'transactions' | 'followups' | 'proofs'
 
 const displayDate = (timestamp: number) => new Intl.DateTimeFormat('en', { month: 'short', day: 'numeric', year: 'numeric' }).format(timestamp)
 
@@ -210,6 +211,7 @@ function Dashboard({ address, vault, setVault, vaultCrypto, provider, disconnect
   const [error, setError] = useState('')
   const [toast, setToast] = useState('')
   const [query, setQuery] = useState('')
+  const [view, setView] = useState<DashboardView>('overview')
 
   const persist = async (records: WhyRecord[]) => {
     localStorage.setItem(vaultKey(address), await encryptRecords(vaultCrypto, records))
@@ -263,18 +265,37 @@ function Dashboard({ address, vault, setVault, vaultCrypto, provider, disconnect
     finally { setBusy(false) }
   }
 
-  const filtered = vault.filter((record) => JSON.stringify(record.versions.at(-1)?.values).toLowerCase().includes(query.toLowerCase()) || record.transaction.hash.includes(query))
-  const due = vault.filter((record) => { const date = record.versions.at(-1)?.values.followUp; return date && !['Completed', 'Repaid', 'Refunded', 'Cancelled'].includes(record.versions.at(-1)!.values.status) }).length
+  const needsFollowUp = (record: WhyRecord) => {
+    const latest = record.versions.at(-1)
+    return Boolean(latest?.values.followUp && !['Completed', 'Repaid', 'Refunded', 'Cancelled'].includes(latest.values.status))
+  }
+  const due = vault.filter(needsFollowUp).length
+  const secured = vault.filter((record) => record.versions.at(-1)?.anchorId).length
+  const searched = vault.filter((record) => JSON.stringify(record.versions.at(-1)?.values).toLowerCase().includes(query.toLowerCase()) || record.transaction.hash.includes(query))
+  const filtered = searched.filter((record) => view === 'followups' ? needsFollowUp(record) : view === 'proofs' ? Boolean(record.versions.at(-1)?.anchorId) : true)
+  const viewCopy: Record<DashboardView, { eyebrow: string; title: string; intro: string; panel: string; panelIntro: string }> = {
+    overview: { eyebrow: 'Private transaction memory', title: `Good ${new Date().getUTCHours() < 12 ? 'morning' : 'afternoon'}.`, intro: 'Give every transfer a reason you can trust later.', panel: 'Your transaction stories', panelIntro: 'Real transactions, with the missing context restored.' },
+    transactions: { eyebrow: 'Transaction ledger', title: 'Transactions', intro: 'Every imported transfer and its private context.', panel: 'All transaction stories', panelIntro: 'Search, reveal, or add a new version to any record.' },
+    followups: { eyebrow: 'Action queue', title: 'Follow-ups', intro: 'Keep unresolved loans, deposits, and promises visible.', panel: 'Needs your attention', panelIntro: 'Records with an active follow-up date.' },
+    proofs: { eyebrow: 'Selective disclosure', title: 'Shared proofs', intro: 'Reveal only what is needed and keep everything else private.', panel: 'Ready to verify', panelIntro: 'Secured records that can produce an independent verification link.' },
+  }
+  const currentCopy = viewCopy[view]
+  const emptyCopy = view === 'followups'
+    ? { Icon: CalendarClock, title: 'Nothing needs follow-up.', copy: 'Open records with a follow-up date will appear here.', action: 'View transactions' }
+    : view === 'proofs'
+      ? { Icon: ShieldCheck, title: 'No secured proofs yet.', copy: 'Secure a transaction record before creating a selective verification link.', action: 'View transactions' }
+      : { Icon: Import, title: 'Your transactions have a story.', copy: 'Import a confirmed Monad transaction to attach its first private, verifiable record.', action: 'Import transaction hash' }
+  const EmptyIcon = emptyCopy.Icon
 
   return <div className="dashboard">
-    <aside><Logo /><nav><button className="active"><Sparkles /> Overview</button><button><FileKey2 /> Transactions <span>{vault.length}</span></button><button><CalendarClock /> Follow-ups <span>{due}</span></button><button><ShieldCheck /> Shared proofs</button></nav><div className="aside-proof"><Fingerprint /><strong>Private by default</strong><p>Only salted fingerprints leave this device.</p></div><label className="network-switch"><span>Active network</span><select value={chainId} onChange={(event) => void onSwitchNetwork(Number(event.target.value) as MonadChainId)}><option value={monadMainnet.id}>Monad Mainnet</option><option value={monadTestnet.id}>Monad Testnet</option></select></label><button className="wallet-row" onClick={disconnect}><span className="avatar">{address.slice(2, 4).toUpperCase()}</span><span>{shortAddress(address)}<small>{chainName(chainId)}</small></span><LogOut size={15} /></button></aside>
+    <aside><Logo /><nav><button className={view === 'overview' ? 'active' : ''} onClick={() => setView('overview')}><Sparkles /> Overview</button><button className={view === 'transactions' ? 'active' : ''} onClick={() => setView('transactions')}><FileKey2 /> Transactions <span>{vault.length}</span></button><button className={view === 'followups' ? 'active' : ''} onClick={() => setView('followups')}><CalendarClock /> Follow-ups <span>{due}</span></button><button className={view === 'proofs' ? 'active' : ''} onClick={() => setView('proofs')}><ShieldCheck /> Shared proofs <span>{secured}</span></button></nav><div className="aside-proof"><Fingerprint /><strong>Private by default</strong><p>Only salted fingerprints leave this device.</p></div><label className="network-switch"><span>Active network</span><select value={chainId} onChange={(event) => void onSwitchNetwork(Number(event.target.value) as MonadChainId)}><option value={monadMainnet.id}>Monad Mainnet</option><option value={monadTestnet.id}>Monad Testnet</option></select></label><button className="wallet-row" onClick={disconnect}><span className="avatar">{address.slice(2, 4).toUpperCase()}</span><span>{shortAddress(address)}<small>{chainName(chainId)}</small></span><LogOut size={15} /></button></aside>
     <main className="workspace">
-      <header><div><p className="eyebrow">Private transaction memory</p><h1>Good {new Date().getUTCHours() < 12 ? 'morning' : 'afternoon'}.</h1><p>Give every transfer a reason you can trust later.</p></div><button className="primary" onClick={() => setImportOpen(true)}><Plus size={17} /> Add transaction</button></header>
-      <section className="stats"><article><span>Secured records</span><strong>{vault.filter((r) => r.versions.at(-1)?.anchorId).length}</strong><small><ShieldCheck /> timestamped on Monad</small></article><article><span>Need follow-up</span><strong>{due}</strong><small><CalendarClock /> unresolved records</small></article><article><span>Private drafts</span><strong>{vault.filter((r) => !r.versions.at(-1)?.anchorId).length}</strong><small><LockKeyhole /> encrypted locally</small></article></section>
-      <section className="records-panel"><div className="panel-heading"><div><h2>Your transaction stories</h2><p>Real transactions, with the missing context restored.</p></div><label className="search"><Search size={16} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search records" /></label></div>
-        {filtered.length ? <div className="record-list">{filtered.map((record) => { const latest = record.versions.at(-1)!; return <article key={record.transaction.hash}>
+      <header><div><p className="eyebrow">{currentCopy.eyebrow}</p><h1>{currentCopy.title}</h1><p>{currentCopy.intro}</p></div><button className="primary" onClick={() => setImportOpen(true)}><Plus size={17} /> Add transaction</button></header>
+      {view === 'overview' && <section className="stats"><article><span>Secured records</span><strong>{secured}</strong><small><ShieldCheck /> timestamped on Monad</small></article><article><span>Need follow-up</span><strong>{due}</strong><small><CalendarClock /> unresolved records</small></article><article><span>Private drafts</span><strong>{vault.filter((r) => !r.versions.at(-1)?.anchorId).length}</strong><small><LockKeyhole /> encrypted locally</small></article></section>}
+      <section className={`records-panel ${view !== 'overview' ? 'standalone-panel' : ''}`}><div className="panel-heading"><div><h2>{currentCopy.panel}</h2><p>{currentCopy.panelIntro}</p></div><label className="search"><Search size={16} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search records" /></label></div>
+        {filtered.length ? <div className="record-list">{filtered.map((record) => { const latest = record.versions.at(-1)!; return <article key={`${record.transaction.chainId ?? monadTestnet.id}:${record.transaction.hash}`}>
           <div className="token-icon">{record.transaction.tokenSymbol.slice(0, 1)}</div><div className="record-main"><div><strong>{latest.values.purpose}</strong><span className={latest.anchorId ? 'badge secured' : 'badge'}>{latest.anchorId ? <ShieldCheck size={12} /> : <KeyRound size={12} />}{latest.anchorId ? 'Secured personal record' : 'Private draft'}</span></div><p>{latest.values.counterparty || shortAddress(record.transaction.to ?? record.transaction.from)} · {latest.values.category}</p><div className="meta"><span>{chainName(record.transaction.chainId ?? monadTestnet.id)}</span><span>{displayDate(record.transaction.timestamp)}</span><span>Version {latest.version}</span>{latest.values.followUp && <span><CalendarClock size={12} /> Follow up {latest.values.followUp}</span>}</div></div><div className="record-amount"><strong>{record.transaction.from.toLowerCase() === address.toLowerCase() ? '−' : '+'}{Number(record.transaction.value).toLocaleString(undefined, { maximumFractionDigits: 5 })} {record.transaction.tokenSymbol}</strong><small>{latest.values.status}</small></div><div className="record-actions"><button onClick={() => setRevealing(record)}>Reveal</button><button aria-label="Edit record" onClick={() => setSelected(record.transaction)}><ChevronRight /></button></div>
-        </article> })}</div> : <div className="empty"><div><Import /></div><h3>Your transactions have a story.</h3><p>Import a confirmed Monad transaction to attach its first private, verifiable record.</p><button className="secondary" onClick={() => setImportOpen(true)}>Import transaction hash</button></div>}
+        </article> })}</div> : <div className="empty"><div><EmptyIcon /></div><h3>{emptyCopy.title}</h3><p>{emptyCopy.copy}</p><button className="secondary" onClick={() => view === 'followups' || view === 'proofs' ? setView('transactions') : setImportOpen(true)}>{emptyCopy.action}</button></div>}
       </section>
     </main>
     {importOpen && <div className="modal-backdrop"><form className="import-dialog" onSubmit={doImport}><button type="button" className="close" onClick={() => setImportOpen(false)}><X /></button><div className="dialog-icon"><Import /></div><p className="eyebrow">Live {chainName(chainId)} data</p><h2>Import a transaction</h2><p>Paste a confirmed {chainName(chainId)} transaction involving {shortAddress(address)}. WhyTx validates it directly with the selected network.</p><label>Transaction hash<input autoFocus value={txHash} onChange={(event) => setTxHash(event.target.value)} placeholder="0x…" /></label>{error && <p className="error-message"><CircleAlert size={15} />{error}</p>}<button className="primary secure-button" disabled={busy}>{busy ? 'Checking Monad…' : 'Find transaction'}</button></form></div>}
