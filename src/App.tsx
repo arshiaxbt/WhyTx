@@ -72,7 +72,7 @@ function VerifyPage() {
 
   useEffect(() => {
     try {
-      const encoded = window.location.hash.slice(1)
+      const encoded = window.location.hash.replace(/^#verify\//, '')
       if (!encoded) throw new Error('This verification link has no reveal data.')
       const next = decodeReveal(encoded)
       setPayload(next)
@@ -172,7 +172,8 @@ function RevealDialog({ record, onClose, onToast }: { record: WhyRecord; onClose
       version: version.version, createdAt: version.createdAt, anchorId: version.anchorId,
       fields: chosen.map((field) => ({ field, value: version.values[field], salt: version.salts[field], proof: getProof(tree, field) })),
     }
-    const url = `${window.location.origin}/verify#${encodeReveal(payload)}`
+    const appRoot = new URL(import.meta.env.BASE_URL, window.location.href).href.split('#')[0]
+    const url = `${appRoot}#verify/${encodeReveal(payload)}`
     await navigator.clipboard.writeText(url)
     onToast('Private verification link copied')
     onClose()
@@ -270,7 +271,7 @@ export default function App() {
   const [vault, setVault] = useState<WhyRecord[]>([])
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
-  const isVerify = useMemo(() => window.location.pathname === '/verify', [])
+  const isVerify = useMemo(() => window.location.hash.startsWith('#verify/'), [])
 
   const connect = async () => {
     setBusy(true); setError('')
