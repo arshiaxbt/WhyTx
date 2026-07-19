@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
-import { useAppKit, useAppKitAccount, useAppKitProvider, useDisconnect } from '@reown/appkit/react'
+import { useAppKit, useAppKitAccount, useAppKitNetwork, useAppKitProvider, useDisconnect } from '@reown/appkit/react'
 import type { Provider } from '@reown/appkit-adapter-ethers'
 import {
   ArrowRight,
@@ -25,8 +25,21 @@ import {
 } from 'lucide-react'
 import { parseEventLogs, zeroHash, type EIP1193Provider } from 'viem'
 import './App.css'
-import { ensureMonadNetwork, importTransaction, explorerTx, monadTestnet, publicClient, shortAddress, walletClient } from './lib/chain'
-import { WHYTX_ABI, WHYTX_ADDRESS } from './lib/contract'
+import {
+  chainName,
+  ensureMonadNetwork,
+  explorerTx,
+  importTransaction,
+  monadMainnet,
+  monadTestnet,
+  normalizeChainId,
+  publicClientFor,
+  shortAddress,
+  walletClient,
+  type MonadChainId,
+} from './lib/chain'
+import { appKitMonad, appKitMonadTestnet } from './lib/appkit'
+import { contractAddress, WHYTX_ABI } from './lib/contract'
 import { buildTree, getProof, randomSalt, verifyProof } from './lib/merkle'
 import { decodeReveal, encodeReveal } from './lib/reveal'
 import { decryptRecords, encryptRecords, keyFromSignature, unlockMessage, vaultKey } from './lib/vault'
@@ -75,7 +88,7 @@ function VerifyPage() {
       const next = decodeReveal(encoded)
       setPayload(next)
       if (next.contract && next.anchorId) {
-        publicClient.readContract({ address: next.contract, abi: WHYTX_ABI, functionName: 'records', args: [next.anchorId as `0x${string}`] })
+        publicClientFor(next.chainId).readContract({ address: next.contract, abi: WHYTX_ABI, functionName: 'records', args: [next.anchorId as `0x${string}`] })
           .then((record) => setChainMatch(
             record[0].toLowerCase() === next.creator.toLowerCase()
             && record[2].toLowerCase() === next.root.toLowerCase()
@@ -105,7 +118,7 @@ function VerifyPage() {
           <div><span>Recorded</span><strong>{displayDate(payload.createdAt)}</strong></div>
           <div><span>Onchain anchor</span><strong>{chainMatch === true ? 'Confirmed' : chainMatch === false ? 'Not found' : 'Not anchored'}</strong></div>
         </div>
-        <div className="verify-links"><a className="tx-link" href={explorerTx(payload.transactionHash)} target="_blank" rel="noreferrer">Original transaction <ExternalLink size={14} /></a>{payload.anchorTx && <a className="tx-link" href={explorerTx(payload.anchorTx)} target="_blank" rel="noreferrer">Onchain proof <ExternalLink size={14} /></a>}</div>
+        <div className="verify-links"><a className="tx-link" href={explorerTx(payload.transactionHash, payload.chainId)} target="_blank" rel="noreferrer">Original transaction <ExternalLink size={14} /></a>{payload.anchorTx && <a className="tx-link" href={explorerTx(payload.anchorTx, payload.chainId)} target="_blank" rel="noreferrer">Onchain proof <ExternalLink size={14} /></a>}</div>
         <details><summary>What does this prove?</summary><p>It proves these revealed values match the cryptographic record created at the shown time. It does not prove that the creator's statements are factually true or legally enforceable.</p></details>
       </> : <p>Checking proof…</p>}
     </section>
@@ -117,7 +130,7 @@ function Landing({ connect, busy, error, connected }: { connect: () => void; bus
     <nav><Logo /><button className="nav-connect" onClick={connect} disabled={busy}><Wallet size={16} />{busy ? 'Unlocking…' : connected ? 'Unlock ledger' : 'Connect wallet'}</button></nav>
     <main className="hero">
       <div className="hero-copy">
-        <div className="network-pill"><span /> Live on Monad Testnet</div>
+        <div className="network-pill"><span /> Live on Monad Mainnet + Testnet</div>
         <h1>Your wallet remembers <em>what.</em><br />WhyTx remembers <em>why.</em></h1>
         <p>Attach private context to crypto transactions, follow up later, and prove what you recorded—without putting your notes onchain.</p>
         <div className="hero-actions"><button className="primary large" onClick={connect} disabled={busy}>{busy ? 'Unlocking…' : connected ? 'Unlock your private ledger' : 'Connect a wallet'} <ArrowRight size={17} /></button><a href="#how">See how it works</a></div>
@@ -141,9 +154,9 @@ function Landing({ connect, busy, error, connected }: { connect: () => void; bus
   </div>
 }
 
-function RecordEditor({ transaction, existing, onClose, onSave, busy }: {
+function RecordEditor({ transaction, existing, onClose, onSave, busy, canSecure }: {
   transaction: ImportedTransaction; existing?: WhyRecord; onClose: () => void;
-  onSave: (values: RecordValues) => void; busy: boolean
+  onSave: (values: RecordValues) => void; busy: boolean; canSecure: boolean
 }) {
   const latest = existing?.versions.at(-1)
   const [values, setValues] = useState<RecordValues>(latest?.values ?? emptyValues)
@@ -159,7 +172,7 @@ function RecordEditor({ transaction, existing, onClose, onSave, busy }: {
     <div className="form-row"><label>Person or organization<input value={values.counterparty} onChange={(event) => update('counterparty', event.target.value)} placeholder="e.g. Apartment owner" /></label><label>Follow-up date<input type="date" value={values.followUp} onChange={(event) => update('followUp', event.target.value)} /></label></div>
     <label>Private details <span className="optional">optional · never revealed by default</span><textarea value={values.privateDetails} onChange={(event) => update('privateDetails', event.target.value)} placeholder="Anything for your eyes only" /></label>
     <div className="privacy-callout"><LockKeyhole size={17} /><p><strong>Private by design</strong><br />Readable details are encrypted in this browser. Only a cryptographic fingerprint is sent to Monad.</p></div>
-    <button className="primary secure-button" disabled={busy}><ShieldCheck size={17} />{busy ? 'Securing on Monad…' : WHYTX_ADDRESS ? 'Secure this record' : 'Save private draft'}</button>
+    <button className="primary secure-button" disabled={busy}><ShieldCheck size={17} />{busy ? 'Securing on Monad…' : canSecure ? 'Secure this record' : 'Save private draft'}</button>
   </form></div>
 }
 
@@ -170,7 +183,7 @@ function RevealDialog({ record, onClose, onToast }: { record: WhyRecord; onClose
   const share = async () => {
     const tree = buildTree(version.values, version.salts)
     const payload: RevealPayload = {
-      schema: 'whytx.reveal.v1', chainId: monadTestnet.id, contract: WHYTX_ADDRESS,
+      schema: 'whytx.reveal.v1', chainId: record.transaction.chainId ?? monadTestnet.id, contract: contractAddress(record.transaction.chainId ?? monadTestnet.id),
       creator: version.creator, transactionHash: record.transaction.hash, root: version.root,
       version: version.version, createdAt: version.createdAt, anchorId: version.anchorId, anchorTx: version.anchorTx,
       fields: chosen.map((field) => ({ field, value: version.values[field], salt: version.salts[field], proof: getProof(tree, field) })),
@@ -184,9 +197,10 @@ function RevealDialog({ record, onClose, onToast }: { record: WhyRecord; onClose
   return <div className="modal-backdrop"><section className="reveal-dialog"><button className="close" onClick={onClose}><X /></button><p className="eyebrow">Selective reveal</p><h2>Choose what to show</h2><p>The other details stay hidden. Every chosen field includes a proof that anyone can check.</p><div className="reveal-options">{RECORD_FIELDS.map((field) => <label key={field}><input type="checkbox" checked={chosen.includes(field)} onChange={() => toggle(field)} /><span><strong>{fieldLabels[field]}</strong><small>{version.values[field] || 'Not specified'}</small></span><Check size={15} /></label>)}</div>{record.versions.length > 1 && <div className="version-history"><strong><History size={14} /> Version history</strong>{record.versions.map((item) => <div key={item.id}><span>Version {item.version}</span><small>{displayDate(item.createdAt)}</small><span className={item.anchorId ? 'history-secured' : ''}>{item.anchorId ? 'Secured' : 'Draft'}</span></div>)}</div>}<button className="primary secure-button" disabled={!chosen.length} onClick={share}><Copy size={16} /> Copy verification link</button></section></div>
 }
 
-function Dashboard({ address, vault, setVault, vaultCrypto, provider, disconnect }: {
+function Dashboard({ address, vault, setVault, vaultCrypto, provider, disconnect, chainId, onSwitchNetwork }: {
   address: `0x${string}`; vault: WhyRecord[]; setVault: (records: WhyRecord[]) => void; vaultCrypto: CryptoKey;
-  provider: EIP1193Provider; disconnect: () => void
+  provider: EIP1193Provider; disconnect: () => void; chainId: MonadChainId;
+  onSwitchNetwork: (chainId: MonadChainId) => Promise<void>
 }) {
   const [importOpen, setImportOpen] = useState(false)
   const [txHash, setTxHash] = useState('')
@@ -206,7 +220,7 @@ function Dashboard({ address, vault, setVault, vaultCrypto, provider, disconnect
     event.preventDefault(); setBusy(true); setError('')
     try {
       if (!/^0x[0-9a-fA-F]{64}$/.test(txHash)) throw new Error('Enter a valid 66-character transaction hash.')
-      const tx = await importTransaction(txHash as `0x${string}`)
+      const tx = await importTransaction(txHash as `0x${string}`, chainId)
       if (!tx.success) throw new Error('Only confirmed successful transactions can be recorded.')
       if (tx.from.toLowerCase() !== address.toLowerCase() && tx.to?.toLowerCase() !== address.toLowerCase()) throw new Error('This transaction does not involve the connected wallet.')
       setImportOpen(false); setTxHash(''); setSelected(tx)
@@ -218,31 +232,33 @@ function Dashboard({ address, vault, setVault, vaultCrypto, provider, disconnect
     if (!selected) return
     setBusy(true); setError('')
     try {
-      const existing = vault.find((item) => item.transaction.hash === selected.hash)
+      const selectedChainId = (selected.chainId ?? monadTestnet.id) as MonadChainId
+      const selectedContract = contractAddress(selectedChainId)
+      const existing = vault.find((item) => item.transaction.hash === selected.hash && (item.transaction.chainId ?? monadTestnet.id) === selectedChainId)
       const salts = Object.fromEntries(RECORD_FIELDS.map((field) => [field, randomSalt()])) as Record<RecordField, `0x${string}`>
       const tree = buildTree(values, salts)
       const version: RecordVersion = {
         id: crypto.randomUUID(), creator: address, version: (existing?.versions.length ?? 0) + 1, createdAt: Date.now(),
         values, salts, root: tree.root, previousAnchorId: existing?.versions.at(-1)?.anchorId,
       }
-      if (WHYTX_ADDRESS) {
-        await ensureMonadNetwork(provider)
-        const client = walletClient(provider)
+      if (selectedContract) {
+        await ensureMonadNetwork(provider, selectedChainId)
+        const client = walletClient(provider, selectedChainId)
         const anchorTx = await client.writeContract({
-          address: WHYTX_ADDRESS, abi: WHYTX_ABI, functionName: 'secureRecord',
+          address: selectedContract, abi: WHYTX_ABI, functionName: 'secureRecord',
           args: [selected.hash, tree.root, (version.previousAnchorId as `0x${string}` | undefined) ?? zeroHash], account: address,
         })
-        const receipt = await publicClient.waitForTransactionReceipt({ hash: anchorTx })
+        const receipt = await publicClientFor(selectedChainId).waitForTransactionReceipt({ hash: anchorTx })
         const logs = parseEventLogs({ abi: WHYTX_ABI, logs: receipt.logs, eventName: 'RecordSecured' })
         version.anchorTx = anchorTx
         version.anchorId = logs[0]?.args.id
         version.createdAt = Number(logs[0]?.args.createdAt ?? BigInt(Math.floor(Date.now() / 1000))) * 1000
       }
       const next = existing
-        ? vault.map((item) => item.transaction.hash === selected.hash ? { ...item, versions: [...item.versions, version] } : item)
+        ? vault.map((item) => item.transaction.hash === selected.hash && (item.transaction.chainId ?? monadTestnet.id) === selectedChainId ? { ...item, versions: [...item.versions, version] } : item)
         : [{ transaction: selected, versions: [version] }, ...vault]
       await persist(next)
-      setSelected(null); setToast(WHYTX_ADDRESS ? 'Record secured on Monad' : 'Private draft saved')
+      setSelected(null); setToast(selectedContract ? `Record secured on ${chainName(selectedChainId)}` : 'Private draft saved')
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'Could not secure record') }
     finally { setBusy(false) }
   }
@@ -251,18 +267,18 @@ function Dashboard({ address, vault, setVault, vaultCrypto, provider, disconnect
   const due = vault.filter((record) => { const date = record.versions.at(-1)?.values.followUp; return date && !['Completed', 'Repaid', 'Refunded', 'Cancelled'].includes(record.versions.at(-1)!.values.status) }).length
 
   return <div className="dashboard">
-    <aside><Logo /><nav><button className="active"><Sparkles /> Overview</button><button><FileKey2 /> Transactions <span>{vault.length}</span></button><button><CalendarClock /> Follow-ups <span>{due}</span></button><button><ShieldCheck /> Shared proofs</button></nav><div className="aside-proof"><Fingerprint /><strong>Private by default</strong><p>Only salted fingerprints leave this device.</p></div><button className="wallet-row" onClick={disconnect}><span className="avatar">{address.slice(2, 4).toUpperCase()}</span><span>{shortAddress(address)}<small>Monad Testnet</small></span><LogOut size={15} /></button></aside>
+    <aside><Logo /><nav><button className="active"><Sparkles /> Overview</button><button><FileKey2 /> Transactions <span>{vault.length}</span></button><button><CalendarClock /> Follow-ups <span>{due}</span></button><button><ShieldCheck /> Shared proofs</button></nav><div className="aside-proof"><Fingerprint /><strong>Private by default</strong><p>Only salted fingerprints leave this device.</p></div><label className="network-switch"><span>Active network</span><select value={chainId} onChange={(event) => void onSwitchNetwork(Number(event.target.value) as MonadChainId)}><option value={monadMainnet.id}>Monad Mainnet</option><option value={monadTestnet.id}>Monad Testnet</option></select></label><button className="wallet-row" onClick={disconnect}><span className="avatar">{address.slice(2, 4).toUpperCase()}</span><span>{shortAddress(address)}<small>{chainName(chainId)}</small></span><LogOut size={15} /></button></aside>
     <main className="workspace">
       <header><div><p className="eyebrow">Private transaction memory</p><h1>Good {new Date().getUTCHours() < 12 ? 'morning' : 'afternoon'}.</h1><p>Give every transfer a reason you can trust later.</p></div><button className="primary" onClick={() => setImportOpen(true)}><Plus size={17} /> Add transaction</button></header>
       <section className="stats"><article><span>Secured records</span><strong>{vault.filter((r) => r.versions.at(-1)?.anchorId).length}</strong><small><ShieldCheck /> timestamped on Monad</small></article><article><span>Need follow-up</span><strong>{due}</strong><small><CalendarClock /> unresolved records</small></article><article><span>Private drafts</span><strong>{vault.filter((r) => !r.versions.at(-1)?.anchorId).length}</strong><small><LockKeyhole /> encrypted locally</small></article></section>
       <section className="records-panel"><div className="panel-heading"><div><h2>Your transaction stories</h2><p>Real transactions, with the missing context restored.</p></div><label className="search"><Search size={16} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search records" /></label></div>
         {filtered.length ? <div className="record-list">{filtered.map((record) => { const latest = record.versions.at(-1)!; return <article key={record.transaction.hash}>
-          <div className="token-icon">{record.transaction.tokenSymbol.slice(0, 1)}</div><div className="record-main"><div><strong>{latest.values.purpose}</strong><span className={latest.anchorId ? 'badge secured' : 'badge'}>{latest.anchorId ? <ShieldCheck size={12} /> : <KeyRound size={12} />}{latest.anchorId ? 'Secured personal record' : 'Private draft'}</span></div><p>{latest.values.counterparty || shortAddress(record.transaction.to ?? record.transaction.from)} · {latest.values.category}</p><div className="meta"><span>{displayDate(record.transaction.timestamp)}</span><span>Version {latest.version}</span>{latest.values.followUp && <span><CalendarClock size={12} /> Follow up {latest.values.followUp}</span>}</div></div><div className="record-amount"><strong>{record.transaction.from.toLowerCase() === address.toLowerCase() ? '−' : '+'}{Number(record.transaction.value).toLocaleString(undefined, { maximumFractionDigits: 5 })} {record.transaction.tokenSymbol}</strong><small>{latest.values.status}</small></div><div className="record-actions"><button onClick={() => setRevealing(record)}>Reveal</button><button aria-label="Edit record" onClick={() => setSelected(record.transaction)}><ChevronRight /></button></div>
+          <div className="token-icon">{record.transaction.tokenSymbol.slice(0, 1)}</div><div className="record-main"><div><strong>{latest.values.purpose}</strong><span className={latest.anchorId ? 'badge secured' : 'badge'}>{latest.anchorId ? <ShieldCheck size={12} /> : <KeyRound size={12} />}{latest.anchorId ? 'Secured personal record' : 'Private draft'}</span></div><p>{latest.values.counterparty || shortAddress(record.transaction.to ?? record.transaction.from)} · {latest.values.category}</p><div className="meta"><span>{chainName(record.transaction.chainId ?? monadTestnet.id)}</span><span>{displayDate(record.transaction.timestamp)}</span><span>Version {latest.version}</span>{latest.values.followUp && <span><CalendarClock size={12} /> Follow up {latest.values.followUp}</span>}</div></div><div className="record-amount"><strong>{record.transaction.from.toLowerCase() === address.toLowerCase() ? '−' : '+'}{Number(record.transaction.value).toLocaleString(undefined, { maximumFractionDigits: 5 })} {record.transaction.tokenSymbol}</strong><small>{latest.values.status}</small></div><div className="record-actions"><button onClick={() => setRevealing(record)}>Reveal</button><button aria-label="Edit record" onClick={() => setSelected(record.transaction)}><ChevronRight /></button></div>
         </article> })}</div> : <div className="empty"><div><Import /></div><h3>Your transactions have a story.</h3><p>Import a confirmed Monad transaction to attach its first private, verifiable record.</p><button className="secondary" onClick={() => setImportOpen(true)}>Import transaction hash</button></div>}
       </section>
     </main>
-    {importOpen && <div className="modal-backdrop"><form className="import-dialog" onSubmit={doImport}><button type="button" className="close" onClick={() => setImportOpen(false)}><X /></button><div className="dialog-icon"><Import /></div><p className="eyebrow">Live Monad data</p><h2>Import a transaction</h2><p>Paste a confirmed Monad Testnet transaction involving {shortAddress(address)}. WhyTx validates it directly with the network.</p><label>Transaction hash<input autoFocus value={txHash} onChange={(event) => setTxHash(event.target.value)} placeholder="0x…" /></label>{error && <p className="error-message"><CircleAlert size={15} />{error}</p>}<button className="primary secure-button" disabled={busy}>{busy ? 'Checking Monad…' : 'Find transaction'}</button></form></div>}
-    {selected && <RecordEditor transaction={selected} existing={vault.find((item) => item.transaction.hash === selected.hash)} onClose={() => setSelected(null)} onSave={saveRecord} busy={busy} />}
+    {importOpen && <div className="modal-backdrop"><form className="import-dialog" onSubmit={doImport}><button type="button" className="close" onClick={() => setImportOpen(false)}><X /></button><div className="dialog-icon"><Import /></div><p className="eyebrow">Live {chainName(chainId)} data</p><h2>Import a transaction</h2><p>Paste a confirmed {chainName(chainId)} transaction involving {shortAddress(address)}. WhyTx validates it directly with the selected network.</p><label>Transaction hash<input autoFocus value={txHash} onChange={(event) => setTxHash(event.target.value)} placeholder="0x…" /></label>{error && <p className="error-message"><CircleAlert size={15} />{error}</p>}<button className="primary secure-button" disabled={busy}>{busy ? 'Checking Monad…' : 'Find transaction'}</button></form></div>}
+    {selected && <RecordEditor transaction={selected} existing={vault.find((item) => item.transaction.hash === selected.hash && (item.transaction.chainId ?? monadTestnet.id) === (selected.chainId ?? monadTestnet.id))} onClose={() => setSelected(null)} onSave={saveRecord} busy={busy} canSecure={Boolean(contractAddress(selected.chainId ?? monadTestnet.id))} />}
     {revealing && <RevealDialog record={revealing} onClose={() => setRevealing(null)} onToast={setToast} />}
     {error && !importOpen && <div className="global-error"><CircleAlert size={16} />{error}<button onClick={() => setError('')}><X size={14} /></button></div>}
     {toast && <Toast message={toast} onDone={() => setToast('')} />}
@@ -273,8 +289,10 @@ export default function App() {
   const { open } = useAppKit()
   const { address: appKitAddress, isConnected } = useAppKitAccount({ namespace: 'eip155' })
   const { walletProvider } = useAppKitProvider<Provider>('eip155')
+  const { chainId: connectedChainId, switchNetwork } = useAppKitNetwork()
   const { disconnect: disconnectWallet } = useDisconnect()
   const address = appKitAddress as `0x${string}` | undefined
+  const activeChainId = normalizeChainId(connectedChainId)
   const [unlockedAddress, setUnlockedAddress] = useState<`0x${string}` | null>(null)
   const [vaultCrypto, setVaultCrypto] = useState<CryptoKey | null>(null)
   const [vault, setVault] = useState<WhyRecord[]>([])
@@ -296,7 +314,7 @@ export default function App() {
     setBusy(true); setError('')
     try {
       const provider = walletProvider as EIP1193Provider
-      const signature = await walletClient(provider).signMessage({ account: address, message: unlockMessage(address) })
+      const signature = await walletClient(provider, activeChainId).signMessage({ account: address, message: unlockMessage(address) })
       const key = await keyFromSignature(signature)
       const stored = localStorage.getItem(vaultKey(address))
       setVault(stored ? await decryptRecords(key, stored) : [])
@@ -310,9 +328,18 @@ export default function App() {
     await disconnectWallet({ namespace: 'eip155' })
   }
 
+  const changeNetwork = async (nextChainId: MonadChainId) => {
+    setError('')
+    try {
+      await switchNetwork(nextChainId === monadMainnet.id ? appKitMonad : appKitMonadTestnet)
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Could not switch Monad network')
+    }
+  }
+
   if (isVerify) return <VerifyPage />
   if (!address || !walletProvider || !vaultCrypto || unlockedAddress?.toLowerCase() !== address.toLowerCase()) {
     return <Landing connect={connect} busy={busy} error={error} connected={Boolean(isConnected && address)} />
   }
-  return <Dashboard address={address} vault={vault} setVault={setVault} vaultCrypto={vaultCrypto} provider={walletProvider as EIP1193Provider} disconnect={disconnect} />
+  return <Dashboard address={address} vault={vault} setVault={setVault} vaultCrypto={vaultCrypto} provider={walletProvider as EIP1193Provider} disconnect={disconnect} chainId={activeChainId} onSwitchNetwork={changeNetwork} />
 }

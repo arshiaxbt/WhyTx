@@ -10,7 +10,9 @@
     "test": "vitest run",
     "contract:compile": "node scripts/compile-contract.mjs",
     "contract:deploy": "node scripts/deploy-contract.mjs",
+    "contract:deploy:mainnet": "MONAD_NETWORK=mainnet node scripts/deploy-contract.mjs",
     "contract:verify-deployment": "node scripts/verify-deployment.mjs",
+    "contract:verify-mainnet": "MONAD_NETWORK=mainnet node scripts/verify-deployment.mjs",
     "check": "npm run lint && npm run test && npm run contract:compile && npm run build",
     "deploy:web": "npm run build && gh-pages -d dist --nojekyll",
     "preview": "vite preview"

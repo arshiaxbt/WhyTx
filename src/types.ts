@@ -13,6 +13,7 @@ export type RecordValues = Record<RecordField, string>
 
 export interface ImportedTransaction {
   hash: `0x${string}`
+  chainId: number
   from: `0x${string}`
   to: `0x${string}` | null
   value: string

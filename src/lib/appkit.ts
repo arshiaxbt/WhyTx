@@ -1,5 +1,5 @@
 import { createAppKit } from '@reown/appkit/react'
-import { monadTestnet as appKitMonadTestnet } from '@reown/appkit/networks'
+import { monad as appKitMonad, monadTestnet as appKitMonadTestnet } from '@reown/appkit/networks'
 import { EthersAdapter } from '@reown/appkit-adapter-ethers'
 
 export const REOWN_PROJECT_ID = import.meta.env.VITE_REOWN_PROJECT_ID || '3a27995d34addeb0cbfcac40751a6eef'
@@ -9,8 +9,8 @@ const iconUrl = new URL(`${import.meta.env.BASE_URL}favicon.svg`, window.locatio
 
 export const appKit = createAppKit({
   adapters: [new EthersAdapter()],
-  networks: [appKitMonadTestnet],
-  defaultNetwork: appKitMonadTestnet,
+  networks: [appKitMonad, appKitMonadTestnet],
+  defaultNetwork: appKitMonad,
   projectId: REOWN_PROJECT_ID,
   metadata: {
     name: 'WhyTx',
@@ -25,4 +25,4 @@ export const appKit = createAppKit({
   },
 })
 
-export { appKitMonadTestnet }
+export { appKitMonad, appKitMonadTestnet }

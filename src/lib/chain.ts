@@ -12,22 +12,51 @@ import {
 } from 'viem'
 import type { ImportedTransaction } from '../types'
 
+export const monadMainnet = defineChain({
+  id: 143,
+  name: 'Monad Mainnet',
+  nativeCurrency: { name: 'Monad', symbol: 'MON', decimals: 18 },
+  rpcUrls: { default: { http: ['https://rpc.monad.xyz', 'https://rpc1.monad.xyz'] } },
+  blockExplorers: { default: { name: 'Monadscan', url: 'https://monadscan.com' } },
+})
+
 export const monadTestnet = defineChain({
   id: 10143,
   name: 'Monad Testnet',
-  nativeCurrency: { name: 'MON', symbol: 'MON', decimals: 18 },
+  nativeCurrency: { name: 'Testnet MON', symbol: 'MON', decimals: 18 },
   rpcUrls: { default: { http: ['https://testnet-rpc.monad.xyz'] } },
-  blockExplorers: { default: { name: 'Monadscan', url: 'https://testnet.monadscan.com' } },
+  blockExplorers: { default: { name: 'Monad Testnet Explorer', url: 'https://testnet.monadexplorer.com' } },
   testnet: true,
 })
 
-export const publicClient = createPublicClient({ chain: monadTestnet, transport: http() })
+export type MonadChainId = typeof monadMainnet.id | typeof monadTestnet.id
+export const DEFAULT_CHAIN_ID: MonadChainId = monadMainnet.id
+export const MONAD_CHAINS = [monadMainnet, monadTestnet] as const
 
-export function walletClient(provider: EIP1193Provider) {
-  return createWalletClient({ chain: monadTestnet, transport: custom(provider) })
+export const isMonadChainId = (chainId: number): chainId is MonadChainId =>
+  chainId === monadMainnet.id || chainId === monadTestnet.id
+
+export const normalizeChainId = (chainId: number | string | undefined): MonadChainId => {
+  const numeric = Number(chainId)
+  return isMonadChainId(numeric) ? numeric : DEFAULT_CHAIN_ID
 }
 
-export async function importTransaction(hash: `0x${string}`): Promise<ImportedTransaction> {
+export const chainFor = (chainId: number | undefined) =>
+  chainId === monadTestnet.id ? monadTestnet : monadMainnet
+
+export const chainName = (chainId: number | undefined) => chainFor(chainId).name
+
+export function publicClientFor(chainId: number | undefined) {
+  const chain = chainFor(chainId)
+  return createPublicClient({ chain, transport: http(chain.rpcUrls.default.http[0]) })
+}
+
+export function walletClient(provider: EIP1193Provider, chainId: number | undefined = DEFAULT_CHAIN_ID) {
+  return createWalletClient({ chain: chainFor(chainId), transport: custom(provider) })
+}
+
+export async function importTransaction(hash: `0x${string}`, chainId: MonadChainId): Promise<ImportedTransaction> {
+  const publicClient = publicClientFor(chainId)
   const [tx, receipt] = await Promise.all([
     publicClient.getTransaction({ hash }),
     publicClient.getTransactionReceipt({ hash }),
@@ -54,6 +83,7 @@ export async function importTransaction(hash: `0x${string}`): Promise<ImportedTr
   }
   return {
     hash,
+    chainId,
     from: tx.from,
     to: tx.to,
     value,
@@ -65,24 +95,25 @@ export async function importTransaction(hash: `0x${string}`): Promise<ImportedTr
   }
 }
 
-export async function ensureMonadNetwork(provider: EIP1193Provider) {
+export async function ensureMonadNetwork(provider: EIP1193Provider, chainId: MonadChainId) {
+  const chain = chainFor(chainId)
   try {
-    await provider.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: `0x${monadTestnet.id.toString(16)}` }] })
+    await provider.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: `0x${chain.id.toString(16)}` }] })
   } catch (cause) {
     const code = (cause as { code?: number }).code
     if (code !== 4902) throw cause
     await provider.request({
       method: 'wallet_addEthereumChain',
       params: [{
-        chainId: `0x${monadTestnet.id.toString(16)}`,
-        chainName: monadTestnet.name,
-        nativeCurrency: monadTestnet.nativeCurrency,
-        rpcUrls: monadTestnet.rpcUrls.default.http,
-        blockExplorerUrls: [monadTestnet.blockExplorers.default.url],
+        chainId: `0x${chain.id.toString(16)}`,
+        chainName: chain.name,
+        nativeCurrency: chain.nativeCurrency,
+        rpcUrls: [...chain.rpcUrls.default.http],
+        blockExplorerUrls: [chain.blockExplorers.default.url],
       }],
     })
   }
 }
 
 export const shortAddress = (value: string) => `${value.slice(0, 6)}…${value.slice(-4)}`
-export const explorerTx = (hash: string) => `${monadTestnet.blockExplorers.default.url}/tx/${hash}`
+export const explorerTx = (hash: string, chainId?: number) => `${chainFor(chainId).blockExplorers.default.url}/tx/${hash}`

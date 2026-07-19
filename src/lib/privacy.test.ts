@@ -6,6 +6,7 @@ import { decryptRecords, encryptRecords, keyFromSignature } from './vault'
 const records: WhyRecord[] = [{
   transaction: {
     hash: `0x${'11'.repeat(32)}`,
+    chainId: 10143,
     from: `0x${'22'.repeat(20)}`,
     to: `0x${'33'.repeat(20)}`,
     value: '500',

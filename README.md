@@ -11,10 +11,10 @@ Built from scratch for the [Spark hackathon](https://buildanything.so/hackathons
 ## The working loop
 
 1. Connect a browser or mobile EVM wallet through Reown AppKit and sign a gas-free unlock message.
-2. Import a real confirmed Monad Testnet transaction hash involving that wallet.
+2. Choose Monad Mainnet or Monad Testnet and import a confirmed transaction involving that wallet.
 3. Add a purpose, category, counterparty label, status, follow-up date, and private details.
 4. Encrypt the readable record locally with AES-GCM.
-5. Secure a salted Merkle root on Monad Testnet; no readable note goes onchain.
+5. Secure a salted Merkle root on the selected Monad network; no readable note goes onchain.
 6. Create a verification link containing only selected fields and their Merkle proofs.
 7. Independently verify both the field proofs and the onchain anchor.
 8. Edit the record as a new linked version; earlier anchors remain intact.
@@ -70,18 +70,25 @@ npm run contract:compile
 
 The build artifact is written to `artifacts/WhyTxRegistry.json`.
 
+Deploy to mainnet with a funded key supplied only through the environment:
+
+```bash
+DEPLOYER_PRIVATE_KEY=0x... npm run contract:deploy:mainnet
+npm run contract:verify-mainnet
+```
+
 - Contract: [`0x3ccacaa6fa6ca64e1f8f8f8f448f0a5a97581129`](https://testnet.monadscan.com/address/0x3ccacaa6fa6ca64e1f8f8f8f448f0a5a97581129)
 - Deployment transaction: [`0x0e1994fdce64e130d3e00de263b675c4cdf711d25c0e8a82f1b72650b51e3bf9`](https://testnet.monadscan.com/tx/0x0e1994fdce64e130d3e00de263b675c4cdf711d25c0e8a82f1b72650b51e3bf9)
 - Integration test: [`0xbe274c628f38925228e4437c31d5b8697f00aad4201966c4ac94f00ae0b271ed`](https://testnet.monadscan.com/tx/0xbe274c628f38925228e4437c31d5b8697f00aad4201966c4ac94f00ae0b271ed) (event and persisted fields verified)
 - Source verification: [`perfect` match on MonadVision](https://testnet.monadvision.com/address/0x3ccacaa6fa6ca64e1f8f8f8f448f0a5a97581129)
 - Deployment metadata: [`deployments/monad-testnet.json`](deployments/monad-testnet.json)
 
-## Network
+## Networks
 
-- Monad Testnet
-- Chain ID: `10143`
-- RPC: `https://testnet-rpc.monad.xyz`
-- Explorer: `https://testnet.monadscan.com`
+- Monad Mainnet — chain ID `143`, RPC `https://rpc.monad.xyz`, explorer `https://monadscan.com`
+- Monad Testnet — chain ID `10143`, RPC `https://testnet-rpc.monad.xyz`, explorer `https://testnet.monadexplorer.com`
+
+Connected users can switch between both networks from the dashboard. Transaction imports, contract writes, explorer links, and verification links remain bound to the selected chain.
 
 ## Project structure
 

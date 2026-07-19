@@ -1,6 +1,12 @@
-export const WHYTX_ADDRESS = (
-  import.meta.env.VITE_WHYTX_CONTRACT || '0x3ccacaa6fa6ca64e1f8f8f8f448f0a5a97581129'
+const testnetAddress = (
+  import.meta.env.VITE_WHYTX_TESTNET_CONTRACT
+  || import.meta.env.VITE_WHYTX_CONTRACT
+  || '0x3ccacaa6fa6ca64e1f8f8f8f448f0a5a97581129'
 ) as `0x${string}`
+
+const mainnetAddress = import.meta.env.VITE_WHYTX_MAINNET_CONTRACT as `0x${string}` | undefined
+
+export const contractAddress = (chainId: number) => chainId === 143 ? mainnetAddress : testnetAddress
 
 export const WHYTX_ABI = [
   {
