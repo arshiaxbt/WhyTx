@@ -137,6 +137,7 @@ function Landing({ connect, busy, error, connected }: { connect: () => void; bus
       [LockKeyhole, 'Keep it private', 'Your readable record is encrypted locally. Monad receives only a salted fingerprint.'],
       [ShieldCheck, 'Prove when needed', 'Reveal selected fields and let anyone independently confirm they were not changed.'],
     ].map(([Icon, title, copy], index) => { const I = Icon as typeof FileKey2; return <article key={String(title)}><span>0{index + 1}</span><I size={22} /><h3>{String(title)}</h3><p>{String(copy)}</p></article> })}</div></section>
+    <footer className="site-footer"><Logo /><a href="https://x.com/0xarshia" target="_blank" rel="noreferrer">Created by <strong>@0xarshia</strong><ExternalLink size={13} /></a></footer>
   </div>
 }
 
