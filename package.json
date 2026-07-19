@@ -7,11 +7,16 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
+    "test": "vitest run",
+    "contract:compile": "node scripts/compile-contract.mjs",
+    "check": "npm run lint && npm run test && npm run contract:compile && npm run build",
     "preview": "vite preview"
   },
   "dependencies": {
+    "lucide-react": "^1.25.0",
     "react": "^19.2.7",
-    "react-dom": "^19.2.7"
+    "react-dom": "^19.2.7",
+    "viem": "^2.55.4"
   },
   "devDependencies": {
     "@types/node": "^24.13.2",
@@ -19,7 +24,12 @@
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.3",
     "oxlint": "^1.71.0",
+    "solc": "^0.8.36",
     "typescript": "~6.0.2",
-    "vite": "^8.1.1"
+    "vite": "^8.1.1",
+    "vitest": "^4.1.10"
+  },
+  "overrides": {
+    "tmp": "^0.2.6"
   }
 }

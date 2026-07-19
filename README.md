@@ -1,32 +1,91 @@
-# React + TypeScript + Vite
+# WhyTx
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+> Your wallet remembers what. WhyTx remembers why.
 
-Currently, two official plugins are available:
+WhyTx is a private memory and proof layer for crypto transactions. It lets a wallet owner attach encrypted context to a confirmed Monad transaction, preserve version history, selectively reveal fields, and prove that the revealed context matches a timestamped onchain commitment.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+Built from scratch for the [Spark hackathon](https://buildanything.so/hackathons/spark), July 13–19, 2026.
 
-## React Compiler
+## The working loop
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+1. Connect an injected EVM wallet and sign a gas-free unlock message.
+2. Import a real confirmed Monad Testnet transaction hash involving that wallet.
+3. Add a purpose, category, counterparty label, status, follow-up date, and private details.
+4. Encrypt the readable record locally with AES-GCM.
+5. Secure a salted Merkle root on Monad Testnet; no readable note goes onchain.
+6. Create a verification link containing only selected fields and their Merkle proofs.
+7. Independently verify both the field proofs and the onchain anchor.
+8. Edit the record as a new linked version; earlier anchors remain intact.
 
-## Expanding the Oxlint configuration
+## What it proves—and what it does not
 
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
+WhyTx proves that a wallet created a particular cryptographic record at an onchain time, that the record was linked to a transaction, and that revealed values match that record. It does **not** prove a personal statement is true, agreed by the counterparty, or legally enforceable.
 
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+## Privacy model
+
+- A deterministic wallet signature derives a browser-local AES-256-GCM key.
+- Full records and per-field random salts are stored only as ciphertext in `localStorage`.
+- Each record field becomes a salted Merkle leaf. The contract receives only the root, original transaction hash, and previous-version ID.
+- Reveal data is encoded in the URL fragment (`#...`), which browsers do not send to the hosting server.
+- A verifier can check disclosed leaves without learning hidden values.
+
+This hackathon implementation is local-first: clearing browser storage removes the encrypted records. A production release should add encrypted backup and a reviewed recovery design.
+
+## Stack
+
+- React 19, TypeScript, Vite
+- viem for Monad RPC and wallet interaction
+- Web Crypto API for AES-GCM
+- Solidity `WhyTxRegistry` contract
+- Vitest for cryptographic proof tests
+
+## Run locally
+
+Requirements: Node.js 22+ and an injected EVM wallet.
+
+```bash
+npm install
+cp .env.example .env
+npm run dev
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+Run every check:
+
+```bash
+npm run check
+```
+
+That command runs linting, unit tests, Solidity compilation, TypeScript, and the production build.
+
+## Contract
+
+The contract is intentionally small and append-only. Compile it with:
+
+```bash
+npm run contract:compile
+```
+
+The build artifact is written to `artifacts/WhyTxRegistry.json`. Deployment details and the verified Monad Testnet address will be added here after deployment.
+
+## Network
+
+- Monad Testnet
+- Chain ID: `10143`
+- RPC: `https://testnet-rpc.monad.xyz`
+- Explorer: `https://testnet.monadscan.com`
+
+## Project structure
+
+```text
+contracts/             onchain commitment registry
+scripts/               reproducible Solidity compiler
+src/lib/chain.ts       live Monad reads and wallet client
+src/lib/merkle.ts      field commitments and selective proofs
+src/lib/vault.ts       browser encryption
+src/lib/reveal.ts      privacy-preserving verification links
+src/App.tsx            product UI and complete user flow
+```
+
+## License
+
+MIT

@@ -1,0 +1,154 @@
+{
+  "abi": [
+    {
+      "inputs": [],
+      "name": "EmptyRoot",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "NotRecordOwner",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "UnknownPreviousRecord",
+      "type": "error"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "bytes32",
+          "name": "id",
+          "type": "bytes32"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "creator",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "bytes32",
+          "name": "transactionHash",
+          "type": "bytes32"
+        },
+        {
+          "indexed": false,
+          "internalType": "bytes32",
+          "name": "root",
+          "type": "bytes32"
+        },
+        {
+          "indexed": false,
+          "internalType": "bytes32",
+          "name": "previousId",
+          "type": "bytes32"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint64",
+          "name": "createdAt",
+          "type": "uint64"
+        }
+      ],
+      "name": "RecordSecured",
+      "type": "event"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "creator",
+          "type": "address"
+        }
+      ],
+      "name": "nonces",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "id",
+          "type": "bytes32"
+        }
+      ],
+      "name": "records",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "creator",
+          "type": "address"
+        },
+        {
+          "internalType": "bytes32",
+          "name": "transactionHash",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "bytes32",
+          "name": "root",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "bytes32",
+          "name": "previousId",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "uint64",
+          "name": "createdAt",
+          "type": "uint64"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "transactionHash",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "bytes32",
+          "name": "root",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "bytes32",
+          "name": "previousId",
+          "type": "bytes32"
+        }
+      ],
+      "name": "secureRecord",
+      "outputs": [
+        {
+          "internalType": "bytes32",
+          "name": "id",
+          "type": "bytes32"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    }
+  ],
+  "evm": {
+    "bytecode": {
+      "object": "6080604052348015600e575f5ffd5b506103c08061001c5f395ff3fe608060405234801561000f575f5ffd5b506004361061003f575f3560e01c806301e64725146100435780634c2c176a146100d45780637ecebe00146100f5575b5f5ffd5b6100936100513660046102f9565b5f60208190529081526040902080546001820154600283015460038401546004909401546001600160a01b0390931693919290919067ffffffffffffffff1685565b604080516001600160a01b039096168652602086019490945292840191909152606083015267ffffffffffffffff16608082015260a0015b60405180910390f35b6100e76100e2366004610310565b610114565b6040519081526020016100cb565b6100e7610103366004610339565b60016020525f908152604090205481565b5f82610133576040516329e7276760e11b815260040160405180910390fd5b81156101be575f82815260208190526040902080546001600160a01b031661016e57604051631f94eecd60e21b815260040160405180910390fd5b80546001600160a01b0316331461019857604051635e27834560e01b815260040160405180910390fd5b848160010154146101bc57604051631f94eecd60e21b815260040160405180910390fd5b505b335f908152600160205260408120805490826101d983610366565b9091555060408051336020820152908101879052606081018690526080810185905260a08101829052909150429060c00160408051808303601f19018152828252805160209182012060a084018352338085528285018b81528585018b815260608088018c815267ffffffffffffffff8a811660808b018181525f898152808b528b90209b518c546001600160a01b0319166001600160a01b03909116178c55955160018c0155935160028b0155905160038a015592516004909801805467ffffffffffffffff1916989093169790971790915584518b81529384018a9052938301939093529550889286917f31d6550c229a7051ab8fd90f1332f9a37af5cb4096d4de36b124047de67140bd910160405180910390a450509392505050565b5f60208284031215610309575f5ffd5b5035919050565b5f5f5f60608486031215610322575f5ffd5b505081359360208301359350604090920135919050565b5f60208284031215610349575f5ffd5b81356001600160a01b038116811461035f575f5ffd5b9392505050565b5f6001820161038357634e487b7160e01b5f52601160045260245ffd5b506001019056fea264697066735822122035a3028ff66959ef9aaed3c753056413f10a0feecc41e72931003f6ed2dd532b64736f6c63430008240033"
+    }
+  }
+}
