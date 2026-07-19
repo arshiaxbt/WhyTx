@@ -6,6 +6,8 @@ WhyTx is a private memory and proof layer for crypto transactions. It lets a wal
 
 Built from scratch for the [Spark hackathon](https://buildanything.so/hackathons/spark), July 13–19, 2026.
 
+[Open the live app](https://arshiaxbt.github.io/WhyTx/) · [Watch the onchain demo](https://arshiaxbt.github.io/WhyTx/demo.html)
+
 ## The working loop
 
 1. Connect an injected EVM wallet and sign a gas-free unlock message.

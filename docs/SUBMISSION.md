@@ -38,7 +38,9 @@ Monad Testnet
 
 ### Demo video
 
-Pending recording and upload. Must be public and under 3 minutes.
+https://arshiaxbt.github.io/WhyTx/demo.html
+
+This 29-second public fallback demo uses a real Monad transaction and real contract writes. A narrated recording can replace it before submission if desired.
 
 ### Social post
 
@@ -104,7 +106,7 @@ Your notes stay private. Only the proof goes onchain.
 - [x] Add the contract address to the app and this document.
 - [ ] Re-deploy the web app and test it in a logged-out browser.
 - [ ] Create a real demo transfer and secured WhyTx record.
-- [ ] Record, upload, and test the public video URL.
+- [x] Record, upload, and test the public video URL.
 - [ ] Publish the social post if entering the viral prize.
 - [ ] Paste all fields into the submission form before 23:59 UTC.
 - [ ] Save screenshots or a confirmation URL after submission.
