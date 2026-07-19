@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useAppKit, useAppKitAccount, useAppKitProvider, useDisconnect } from '@reown/appkit/react'
+import type { Provider } from '@reown/appkit-adapter-ethers'
 import {
   ArrowRight,
   CalendarClock,
@@ -37,10 +39,6 @@ import {
   type RevealPayload,
   type WhyRecord,
 } from './types'
-
-declare global {
-  interface Window { ethereum?: EIP1193Provider }
-}
 
 const emptyValues: RecordValues = {
   purpose: '', category: 'Deposit', counterparty: '', followUp: '', status: 'Waiting', privateDetails: '',
@@ -114,15 +112,15 @@ function VerifyPage() {
   </main>
 }
 
-function Landing({ connect, busy, error }: { connect: () => void; busy: boolean; error: string }) {
+function Landing({ connect, busy, error, connected }: { connect: () => void; busy: boolean; error: string; connected: boolean }) {
   return <div className="landing">
-    <nav><Logo /><button className="nav-connect" onClick={connect} disabled={busy}><Wallet size={16} />{busy ? 'Opening wallet…' : 'Connect wallet'}</button></nav>
+    <nav><Logo /><button className="nav-connect" onClick={connect} disabled={busy}><Wallet size={16} />{busy ? 'Unlocking…' : connected ? 'Unlock ledger' : 'Connect wallet'}</button></nav>
     <main className="hero">
       <div className="hero-copy">
         <div className="network-pill"><span /> Live on Monad Testnet</div>
         <h1>Your wallet remembers <em>what.</em><br />WhyTx remembers <em>why.</em></h1>
         <p>Attach private context to crypto transactions, follow up later, and prove what you recorded—without putting your notes onchain.</p>
-        <div className="hero-actions"><button className="primary large" onClick={connect} disabled={busy}>Open your private ledger <ArrowRight size={17} /></button><a href="#how">See how it works</a></div>
+        <div className="hero-actions"><button className="primary large" onClick={connect} disabled={busy}>{busy ? 'Unlocking…' : connected ? 'Unlock your private ledger' : 'Connect a wallet'} <ArrowRight size={17} /></button><a href="#how">See how it works</a></div>
         {error && <p className="error-message"><CircleAlert size={15} />{error}</p>}
         <div className="privacy-line"><LockKeyhole size={14} /> Notes are encrypted in your browser. Only fingerprints go onchain.</div>
       </div>
@@ -185,8 +183,9 @@ function RevealDialog({ record, onClose, onToast }: { record: WhyRecord; onClose
   return <div className="modal-backdrop"><section className="reveal-dialog"><button className="close" onClick={onClose}><X /></button><p className="eyebrow">Selective reveal</p><h2>Choose what to show</h2><p>The other details stay hidden. Every chosen field includes a proof that anyone can check.</p><div className="reveal-options">{RECORD_FIELDS.map((field) => <label key={field}><input type="checkbox" checked={chosen.includes(field)} onChange={() => toggle(field)} /><span><strong>{fieldLabels[field]}</strong><small>{version.values[field] || 'Not specified'}</small></span><Check size={15} /></label>)}</div>{record.versions.length > 1 && <div className="version-history"><strong><History size={14} /> Version history</strong>{record.versions.map((item) => <div key={item.id}><span>Version {item.version}</span><small>{displayDate(item.createdAt)}</small><span className={item.anchorId ? 'history-secured' : ''}>{item.anchorId ? 'Secured' : 'Draft'}</span></div>)}</div>}<button className="primary secure-button" disabled={!chosen.length} onClick={share}><Copy size={16} /> Copy verification link</button></section></div>
 }
 
-function Dashboard({ address, vault, setVault, vaultCrypto, disconnect }: {
-  address: `0x${string}`; vault: WhyRecord[]; setVault: (records: WhyRecord[]) => void; vaultCrypto: CryptoKey; disconnect: () => void
+function Dashboard({ address, vault, setVault, vaultCrypto, provider, disconnect }: {
+  address: `0x${string}`; vault: WhyRecord[]; setVault: (records: WhyRecord[]) => void; vaultCrypto: CryptoKey;
+  provider: EIP1193Provider; disconnect: () => void
 }) {
   const [importOpen, setImportOpen] = useState(false)
   const [txHash, setTxHash] = useState('')
@@ -215,7 +214,7 @@ function Dashboard({ address, vault, setVault, vaultCrypto, disconnect }: {
   }
 
   const saveRecord = async (values: RecordValues) => {
-    if (!selected || !window.ethereum) return
+    if (!selected) return
     setBusy(true); setError('')
     try {
       const existing = vault.find((item) => item.transaction.hash === selected.hash)
@@ -226,8 +225,8 @@ function Dashboard({ address, vault, setVault, vaultCrypto, disconnect }: {
         values, salts, root: tree.root, previousAnchorId: existing?.versions.at(-1)?.anchorId,
       }
       if (WHYTX_ADDRESS) {
-        await ensureMonadNetwork(window.ethereum)
-        const client = walletClient(window.ethereum)
+        await ensureMonadNetwork(provider)
+        const client = walletClient(provider)
         const anchorTx = await client.writeContract({
           address: WHYTX_ADDRESS, abi: WHYTX_ABI, functionName: 'secureRecord',
           args: [selected.hash, tree.root, (version.previousAnchorId as `0x${string}` | undefined) ?? zeroHash], account: address,
@@ -270,29 +269,49 @@ function Dashboard({ address, vault, setVault, vaultCrypto, disconnect }: {
 }
 
 export default function App() {
-  const [address, setAddress] = useState<`0x${string}` | null>(null)
+  const { open } = useAppKit()
+  const { address: appKitAddress, isConnected } = useAppKitAccount({ namespace: 'eip155' })
+  const { walletProvider } = useAppKitProvider<Provider>('eip155')
+  const { disconnect: disconnectWallet } = useDisconnect()
+  const address = appKitAddress as `0x${string}` | undefined
+  const [unlockedAddress, setUnlockedAddress] = useState<`0x${string}` | null>(null)
   const [vaultCrypto, setVaultCrypto] = useState<CryptoKey | null>(null)
   const [vault, setVault] = useState<WhyRecord[]>([])
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const isVerify = useMemo(() => window.location.hash.startsWith('#verify/'), [])
 
+  useEffect(() => {
+    if (!address || address.toLowerCase() !== unlockedAddress?.toLowerCase()) {
+      setUnlockedAddress(null); setVaultCrypto(null); setVault([])
+    }
+  }, [address, unlockedAddress])
+
   const connect = async () => {
+    if (!isConnected || !address || !walletProvider) {
+      await open({ view: 'Connect', namespace: 'eip155' })
+      return
+    }
     setBusy(true); setError('')
     try {
-      if (!window.ethereum) throw new Error('No browser wallet found. Install MetaMask, Rabby, or another EVM wallet.')
-      const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' }) as `0x${string}`[]
-      const account = accounts[0]
-      const signature = await walletClient(window.ethereum).signMessage({ account, message: unlockMessage(account) })
+      const provider = walletProvider as EIP1193Provider
+      const signature = await walletClient(provider).signMessage({ account: address, message: unlockMessage(address) })
       const key = await keyFromSignature(signature)
-      const stored = localStorage.getItem(vaultKey(account))
+      const stored = localStorage.getItem(vaultKey(address))
       setVault(stored ? await decryptRecords(key, stored) : [])
-      setVaultCrypto(key); setAddress(account)
-    } catch (cause) { setError(cause instanceof Error ? cause.message : 'Wallet connection failed') }
+      setVaultCrypto(key); setUnlockedAddress(address)
+    } catch (cause) { setError(cause instanceof Error ? cause.message : 'Could not unlock the private ledger') }
     finally { setBusy(false) }
   }
 
+  const disconnect = async () => {
+    setUnlockedAddress(null); setVaultCrypto(null); setVault([])
+    await disconnectWallet({ namespace: 'eip155' })
+  }
+
   if (isVerify) return <VerifyPage />
-  if (!address || !vaultCrypto) return <Landing connect={connect} busy={busy} error={error} />
-  return <Dashboard address={address} vault={vault} setVault={setVault} vaultCrypto={vaultCrypto} disconnect={() => { setAddress(null); setVaultCrypto(null); setVault([]) }} />
+  if (!address || !walletProvider || !vaultCrypto || unlockedAddress?.toLowerCase() !== address.toLowerCase()) {
+    return <Landing connect={connect} busy={busy} error={error} connected={Boolean(isConnected && address)} />
+  }
+  return <Dashboard address={address} vault={vault} setVault={setVault} vaultCrypto={vaultCrypto} provider={walletProvider as EIP1193Provider} disconnect={disconnect} />
 }

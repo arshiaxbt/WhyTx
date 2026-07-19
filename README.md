@@ -10,7 +10,7 @@ Built from scratch for the [Spark hackathon](https://buildanything.so/hackathons
 
 ## The working loop
 
-1. Connect an injected EVM wallet and sign a gas-free unlock message.
+1. Connect a browser or mobile EVM wallet through Reown AppKit and sign a gas-free unlock message.
 2. Import a real confirmed Monad Testnet transaction hash involving that wallet.
 3. Add a purpose, category, counterparty label, status, follow-up date, and private details.
 4. Encrypt the readable record locally with AES-GCM.
@@ -36,14 +36,15 @@ This hackathon implementation is local-first: clearing browser storage removes t
 ## Stack
 
 - React 19, TypeScript, Vite
-- viem for Monad RPC and wallet interaction
+- Reown AppKit with its Ethers v6 adapter for non-custodial wallet connections
+- viem for Monad RPC and contract interaction
 - Web Crypto API for AES-GCM
 - Solidity `WhyTxRegistry` contract
 - Vitest for cryptographic proof tests
 
 ## Run locally
 
-Requirements: Node.js 22+ and an injected EVM wallet.
+Requirements: Node.js 22+ and a Reown-compatible EVM wallet.
 
 ```bash
 npm install
@@ -88,6 +89,7 @@ The build artifact is written to `artifacts/WhyTxRegistry.json`.
 contracts/             onchain commitment registry
 scripts/               reproducible Solidity compiler
 src/lib/chain.ts       live Monad reads and wallet client
+src/lib/appkit.ts      Reown wallet connection and Monad network setup
 src/lib/merkle.ts      field commitments and selective proofs
 src/lib/vault.ts       browser encryption
 src/lib/reveal.ts      privacy-preserving verification links
