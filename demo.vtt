@@ -1,0 +1,65 @@
+WEBVTT
+
+00:00:01.345 --> 00:00:08.149
+Your wallet remembers what happened. WhyTx remembers why, with private context
+and verifiable onchain proof.
+
+00:00:08.349 --> 00:00:16.580
+Connection is non-custodial through Reown AppKit. Here I choose the isolated
+WhyTx demo wallet.
+
+00:00:16.780 --> 00:00:25.137
+A gas-free signature unlocks the encrypted local ledger. It does not create a
+transaction or expose the private notes.
+
+00:00:25.337 --> 00:00:31.170
+Monad Mainnet is the default network. Testnet remains available from the
+network selector.
+
+00:00:31.370 --> 00:00:39.408
+I will document the real WhyTx registry deployment transaction already
+confirmed on Monad Mainnet.
+
+00:00:39.608 --> 00:00:46.965
+WhyTx adds human context: purpose, category, counterparty, follow-up date,
+status, and private details.
+
+00:00:47.165 --> 00:00:59.073
+Securing sends only a salted Merkle root to the WhyTx registry on Monad
+Mainnet. The readable note stays encrypted in this browser.
+
+00:00:59.273 --> 00:01:05.553
+The overview now shows one secured record, one active follow-up, and no
+unprotected draft.
+
+00:01:05.753 --> 00:01:15.319
+Transactions shows the complete ledger. Follow-ups isolates unresolved records
+with a future action date.
+
+00:01:15.519 --> 00:01:24.899
+Shared Proofs contains secured records. I choose exactly which fields another
+person may verify.
+
+00:01:25.099 --> 00:01:33.802
+The verification link exposes only selected fields, with proofs that they
+match the earlier mainnet commitment.
+
+00:01:34.002 --> 00:01:44.958
+After a refresh, the current tab restores its session securely, so the wallet
+does not ask for the same unlock signature again.
+
+00:01:45.158 --> 00:01:55.063
+Edits never overwrite history. This update becomes version two and links back
+to the original secured record.
+
+00:01:55.263 --> 00:02:02.143
+The reveal screen now shows both secured versions, while the latest record
+remains selectively shareable.
+
+00:02:02.343 --> 00:02:13.673
+Users can switch to Monad Testnet for testing, then return to Mainnet without
+mixing transaction data or proof addresses.
+
+00:02:13.873 --> 00:02:22.194
+WhyTx completes one focused loop: attach, remember, follow up, reveal, and
+independently verify why a crypto transaction happened.
