@@ -77,6 +77,15 @@ DEPLOYER_PRIVATE_KEY=0x... npm run contract:deploy:mainnet
 npm run contract:verify-mainnet
 ```
 
+### Monad Mainnet deployment
+
+- Contract: [`0xc5e6f9952e5dd685f073922ad1221cdaad4f46f9`](https://monadscan.com/address/0xc5e6f9952e5dd685f073922ad1221cdaad4f46f9)
+- Deployment transaction: [`0x2ea390ac6909a1798e10d4cacab3adace368f60f90bf2b303d125b27cdb1e143`](https://monadscan.com/tx/0x2ea390ac6909a1798e10d4cacab3adace368f60f90bf2b303d125b27cdb1e143)
+- Integration test: [`0xf003a809e3778f3ac5a6fe521fad39c3bf161743da133d1f8b91f18dc1689912`](https://monadscan.com/tx/0xf003a809e3778f3ac5a6fe521fad39c3bf161743da133d1f8b91f18dc1689912) (event and persisted fields verified)
+- Deployment metadata: [`deployments/monad-mainnet.json`](deployments/monad-mainnet.json)
+
+### Monad Testnet deployment
+
 - Contract: [`0x3ccacaa6fa6ca64e1f8f8f8f448f0a5a97581129`](https://testnet.monadscan.com/address/0x3ccacaa6fa6ca64e1f8f8f8f448f0a5a97581129)
 - Deployment transaction: [`0x0e1994fdce64e130d3e00de263b675c4cdf711d25c0e8a82f1b72650b51e3bf9`](https://testnet.monadscan.com/tx/0x0e1994fdce64e130d3e00de263b675c4cdf711d25c0e8a82f1b72650b51e3bf9)
 - Integration test: [`0xbe274c628f38925228e4437c31d5b8697f00aad4201966c4ac94f00ae0b271ed`](https://testnet.monadscan.com/tx/0xbe274c628f38925228e4437c31d5b8697f00aad4201966c4ac94f00ae0b271ed) (event and persisted fields verified)

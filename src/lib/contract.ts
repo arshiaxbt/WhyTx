@@ -4,7 +4,10 @@ const testnetAddress = (
   || '0x3ccacaa6fa6ca64e1f8f8f8f448f0a5a97581129'
 ) as `0x${string}`
 
-const mainnetAddress = import.meta.env.VITE_WHYTX_MAINNET_CONTRACT as `0x${string}` | undefined
+const mainnetAddress = (
+  import.meta.env.VITE_WHYTX_MAINNET_CONTRACT
+  || '0xc5e6f9952e5dd685f073922ad1221cdaad4f46f9'
+) as `0x${string}`
 
 export const contractAddress = (chainId: number) => chainId === 143 ? mainnetAddress : testnetAddress
 

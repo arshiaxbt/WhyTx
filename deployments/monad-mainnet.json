@@ -1,0 +1,19 @@
+{
+  "network": "Monad Mainnet",
+  "chainId": 143,
+  "contract": "WhyTxRegistry",
+  "address": "0xc5e6f9952e5dd685f073922ad1221cdaad4f46f9",
+  "deployer": "0x2229967a18Cd8bC7A2A494E3d50b2BE829E2c8Ad",
+  "transactionHash": "0x2ea390ac6909a1798e10d4cacab3adace368f60f90bf2b303d125b27cdb1e143",
+  "blockNumber": 88846888,
+  "gasUsed": 264069,
+  "solcVersion": "0.8.36+commit.8a079791",
+  "sourceCommit": "e0ec8d394e4a4571bb2a309cfbb75c49c7497166",
+  "explorer": "https://monadscan.com/address/0xc5e6f9952e5dd685f073922ad1221cdaad4f46f9",
+  "smokeTest": {
+    "transactionHash": "0xf003a809e3778f3ac5a6fe521fad39c3bf161743da133d1f8b91f18dc1689912",
+    "recordId": "0x59c9777570a078f6afb2dcae00f01b86d859c31d67565547fc31c9d2a44f9f10",
+    "blockNumber": 88847035,
+    "result": "RecordSecured event and persisted record fields verified"
+  }
+}

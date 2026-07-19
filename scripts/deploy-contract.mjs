@@ -62,7 +62,7 @@ const deployment = {
   transactionHash: hash,
   blockNumber: Number(receipt.blockNumber),
   gasUsed: Number(receipt.gasUsed),
-  solcVersion: artifact.compiler?.version ?? 'unknown',
+  solcVersion: JSON.parse(artifact.metadata).compiler.version,
   sourceCommit: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(),
   explorer: `${network.chain.blockExplorers.default.url}/address/${receipt.contractAddress}`,
 }
