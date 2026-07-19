@@ -1,0 +1,13 @@
+{
+  "network": "Monad Testnet",
+  "chainId": 10143,
+  "contract": "WhyTxRegistry",
+  "address": "0x3ccacaa6fa6ca64e1f8f8f8f448f0a5a97581129",
+  "deployer": "0xc5572E7f718c877b61ABC0161B93C389874fDD18",
+  "transactionHash": "0x0e1994fdce64e130d3e00de263b675c4cdf711d25c0e8a82f1b72650b51e3bf9",
+  "blockNumber": 46264631,
+  "gasUsed": 264069,
+  "solcVersion": "0.8.36+commit.8a079791",
+  "sourceCommit": "a0cda87558719c3a9a275f9d06c6e8397cae5994",
+  "explorer": "https://testnet.monadscan.com/address/0x3ccacaa6fa6ca64e1f8f8f8f448f0a5a97581129"
+}

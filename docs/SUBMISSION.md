@@ -34,7 +34,7 @@ Monad Testnet
 
 ### Contract address
 
-Pending deployment funding.
+`0x3ccacaa6fa6ca64e1f8f8f8f448f0a5a97581129`
 
 ### Demo video
 
@@ -100,8 +100,8 @@ Your notes stay private. Only the proof goes onchain.
 - [ ] Register for Spark while signed in.
 - [ ] Confirm participant is 18+ and not in an excluded jurisdiction.
 - [ ] Confirm this is the participant's only submission and a solo project.
-- [ ] Deploy and test `WhyTxRegistry` on Monad Testnet.
-- [ ] Add the contract address to the app and this document.
+- [x] Deploy and test `WhyTxRegistry` on Monad Testnet.
+- [x] Add the contract address to the app and this document.
 - [ ] Re-deploy the web app and test it in a logged-out browser.
 - [ ] Create a real demo transfer and secured WhyTx record.
 - [ ] Record, upload, and test the public video URL.

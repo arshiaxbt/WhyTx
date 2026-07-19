@@ -65,7 +65,11 @@ The contract is intentionally small and append-only. Compile it with:
 npm run contract:compile
 ```
 
-The build artifact is written to `artifacts/WhyTxRegistry.json`. Deployment details and the verified Monad Testnet address will be added here after deployment.
+The build artifact is written to `artifacts/WhyTxRegistry.json`.
+
+- Contract: [`0x3ccacaa6fa6ca64e1f8f8f8f448f0a5a97581129`](https://testnet.monadscan.com/address/0x3ccacaa6fa6ca64e1f8f8f8f448f0a5a97581129)
+- Deployment transaction: [`0x0e1994fdce64e130d3e00de263b675c4cdf711d25c0e8a82f1b72650b51e3bf9`](https://testnet.monadscan.com/tx/0x0e1994fdce64e130d3e00de263b675c4cdf711d25c0e8a82f1b72650b51e3bf9)
+- Deployment metadata: [`deployments/monad-testnet.json`](deployments/monad-testnet.json)
 
 ## Network
 

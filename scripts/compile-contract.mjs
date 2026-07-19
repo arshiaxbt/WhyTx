@@ -9,7 +9,7 @@ const input = {
   sources: { 'WhyTxRegistry.sol': { content: source } },
   settings: {
     optimizer: { enabled: true, runs: 200 },
-    outputSelection: { '*': { '*': ['abi', 'evm.bytecode.object'] } },
+    outputSelection: { '*': { '*': ['abi', 'evm.bytecode.object', 'evm.deployedBytecode.object'] } },
   },
 }
 const output = JSON.parse(solc.compile(JSON.stringify(input)))

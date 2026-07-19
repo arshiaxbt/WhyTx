@@ -1,4 +1,6 @@
-export const WHYTX_ADDRESS = import.meta.env.VITE_WHYTX_CONTRACT as `0x${string}` | undefined
+export const WHYTX_ADDRESS = (
+  import.meta.env.VITE_WHYTX_CONTRACT || '0x3ccacaa6fa6ca64e1f8f8f8f448f0a5a97581129'
+) as `0x${string}`
 
 export const WHYTX_ABI = [
   {
