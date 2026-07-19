@@ -23,7 +23,7 @@ import {
 } from 'lucide-react'
 import { parseEventLogs, zeroHash, type EIP1193Provider } from 'viem'
 import './App.css'
-import { importTransaction, explorerTx, monadTestnet, publicClient, shortAddress, walletClient } from './lib/chain'
+import { ensureMonadNetwork, importTransaction, explorerTx, monadTestnet, publicClient, shortAddress, walletClient } from './lib/chain'
 import { WHYTX_ABI, WHYTX_ADDRESS } from './lib/contract'
 import { buildTree, getProof, randomSalt, verifyProof } from './lib/merkle'
 import { decodeReveal, encodeReveal } from './lib/reveal'
@@ -150,7 +150,7 @@ function RecordEditor({ transaction, existing, onClose, onSave, busy }: {
     <button type="button" className="close" onClick={onClose} aria-label="Close"><X /></button>
     <p className="eyebrow">{latest ? `Save version ${latest.version + 1}` : 'Add private context'}</p>
     <h2>What was this transaction for?</h2>
-    <div className="tx-summary"><span>− {Number(transaction.value).toLocaleString(undefined, { maximumFractionDigits: 5 })} MON</span><small>{shortAddress(transaction.to ?? transaction.from)} · {displayDate(transaction.timestamp)}</small></div>
+    <div className="tx-summary"><span>− {Number(transaction.value).toLocaleString(undefined, { maximumFractionDigits: 5 })} {transaction.tokenSymbol}</span><small>{shortAddress(transaction.to ?? transaction.from)} · {displayDate(transaction.timestamp)}</small></div>
     <label>Purpose<textarea autoFocus required value={values.purpose} onChange={(event) => update('purpose', event.target.value)} placeholder="e.g. Refundable apartment deposit" /></label>
     <div className="form-row"><label>Category<select value={values.category} onChange={(event) => update('category', event.target.value)}>{categories.map((item) => <option key={item}>{item}</option>)}</select></label><label>Status<select value={values.status} onChange={(event) => update('status', event.target.value)}>{statuses.map((item) => <option key={item}>{item}</option>)}</select></label></div>
     <div className="form-row"><label>Person or organization<input value={values.counterparty} onChange={(event) => update('counterparty', event.target.value)} placeholder="e.g. Apartment owner" /></label><label>Follow-up date<input type="date" value={values.followUp} onChange={(event) => update('followUp', event.target.value)} /></label></div>
@@ -222,7 +222,7 @@ function Dashboard({ address, vault, setVault, vaultCrypto, disconnect }: {
         values, salts, root: tree.root, previousAnchorId: existing?.versions.at(-1)?.anchorId,
       }
       if (WHYTX_ADDRESS) {
-        await window.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: `0x${monadTestnet.id.toString(16)}` }] })
+        await ensureMonadNetwork(window.ethereum)
         const client = walletClient(window.ethereum)
         const anchorTx = await client.writeContract({
           address: WHYTX_ADDRESS, abi: WHYTX_ABI, functionName: 'secureRecord',
@@ -253,7 +253,7 @@ function Dashboard({ address, vault, setVault, vaultCrypto, disconnect }: {
       <section className="stats"><article><span>Secured records</span><strong>{vault.filter((r) => r.versions.at(-1)?.anchorId).length}</strong><small><ShieldCheck /> timestamped on Monad</small></article><article><span>Need follow-up</span><strong>{due}</strong><small><CalendarClock /> unresolved records</small></article><article><span>Private drafts</span><strong>{vault.filter((r) => !r.versions.at(-1)?.anchorId).length}</strong><small><LockKeyhole /> encrypted locally</small></article></section>
       <section className="records-panel"><div className="panel-heading"><div><h2>Your transaction stories</h2><p>Real transactions, with the missing context restored.</p></div><label className="search"><Search size={16} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search records" /></label></div>
         {filtered.length ? <div className="record-list">{filtered.map((record) => { const latest = record.versions.at(-1)!; return <article key={record.transaction.hash}>
-          <div className="token-icon">M</div><div className="record-main"><div><strong>{latest.values.purpose}</strong><span className={latest.anchorId ? 'badge secured' : 'badge'}>{latest.anchorId ? <ShieldCheck size={12} /> : <KeyRound size={12} />}{latest.anchorId ? 'Secured personal record' : 'Private draft'}</span></div><p>{latest.values.counterparty || shortAddress(record.transaction.to ?? record.transaction.from)} · {latest.values.category}</p><div className="meta"><span>{displayDate(record.transaction.timestamp)}</span><span>Version {latest.version}</span>{latest.values.followUp && <span><CalendarClock size={12} /> Follow up {latest.values.followUp}</span>}</div></div><div className="record-amount"><strong>{record.transaction.from.toLowerCase() === address.toLowerCase() ? '−' : '+'}{Number(record.transaction.value).toLocaleString(undefined, { maximumFractionDigits: 5 })} MON</strong><small>{latest.values.status}</small></div><div className="record-actions"><button onClick={() => setRevealing(record)}>Reveal</button><button aria-label="Edit record" onClick={() => setSelected(record.transaction)}><ChevronRight /></button></div>
+          <div className="token-icon">{record.transaction.tokenSymbol.slice(0, 1)}</div><div className="record-main"><div><strong>{latest.values.purpose}</strong><span className={latest.anchorId ? 'badge secured' : 'badge'}>{latest.anchorId ? <ShieldCheck size={12} /> : <KeyRound size={12} />}{latest.anchorId ? 'Secured personal record' : 'Private draft'}</span></div><p>{latest.values.counterparty || shortAddress(record.transaction.to ?? record.transaction.from)} · {latest.values.category}</p><div className="meta"><span>{displayDate(record.transaction.timestamp)}</span><span>Version {latest.version}</span>{latest.values.followUp && <span><CalendarClock size={12} /> Follow up {latest.values.followUp}</span>}</div></div><div className="record-amount"><strong>{record.transaction.from.toLowerCase() === address.toLowerCase() ? '−' : '+'}{Number(record.transaction.value).toLocaleString(undefined, { maximumFractionDigits: 5 })} {record.transaction.tokenSymbol}</strong><small>{latest.values.status}</small></div><div className="record-actions"><button onClick={() => setRevealing(record)}>Reveal</button><button aria-label="Edit record" onClick={() => setSelected(record.transaction)}><ChevronRight /></button></div>
         </article> })}</div> : <div className="empty"><div><Import /></div><h3>Your transactions have a story.</h3><p>Import a confirmed Monad transaction to attach its first private, verifiable record.</p><button className="secondary" onClick={() => setImportOpen(true)}>Import transaction hash</button></div>}
       </section>
     </main>

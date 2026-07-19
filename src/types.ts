@@ -16,6 +16,8 @@ export interface ImportedTransaction {
   from: `0x${string}`
   to: `0x${string}` | null
   value: string
+  tokenSymbol: string
+  tokenAddress?: `0x${string}`
   timestamp: number
   blockNumber: string
   success: boolean
