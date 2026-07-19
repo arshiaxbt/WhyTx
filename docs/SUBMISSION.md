@@ -22,7 +22,7 @@ WhyTx lets a wallet owner import a real Monad transaction, attach encrypted cont
 
 ### Project URL
 
-https://arshiaxbt.github.io/WhyTx/
+https://whytx.xyz/
 
 ### GitHub repository
 
@@ -38,7 +38,7 @@ Monad Testnet
 
 ### Demo video
 
-https://arshiaxbt.github.io/WhyTx/demo.html
+https://whytx.xyz/demo.html
 
 This 29-second public fallback demo uses a real Monad transaction and real contract writes. A narrated recording can replace it before submission if desired.
 
@@ -92,7 +92,7 @@ I built **WhyTx** for the @BuildAnything hackathon on Monad: private, encrypted 
 
 Your notes stay private. Only the proof goes onchain.
 
-🔗 https://arshiaxbt.github.io/WhyTx/
+🔗 https://whytx.xyz/
 💻 https://github.com/arshiaxbt/WhyTx
 
 #Monad #BuildAnything #Web3
