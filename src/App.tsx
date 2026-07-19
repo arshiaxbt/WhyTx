@@ -78,7 +78,11 @@ function VerifyPage() {
       setPayload(next)
       if (next.contract && next.anchorId) {
         publicClient.readContract({ address: next.contract, abi: WHYTX_ABI, functionName: 'records', args: [next.anchorId as `0x${string}`] })
-          .then((record) => setChainMatch(record[2].toLowerCase() === next.root.toLowerCase() && record[1].toLowerCase() === next.transactionHash.toLowerCase()))
+          .then((record) => setChainMatch(
+            record[0].toLowerCase() === next.creator.toLowerCase()
+            && record[2].toLowerCase() === next.root.toLowerCase()
+            && record[1].toLowerCase() === next.transactionHash.toLowerCase(),
+          ))
           .catch(() => setChainMatch(false))
       } else setChainMatch(null)
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'Invalid verification link') }
@@ -92,7 +96,7 @@ function VerifyPage() {
       {error ? <><CircleAlert className="error-icon" size={36} /><h1>Link cannot be verified</h1><p>{error}</p></> : payload ? <>
         <div className={`seal ${proofMatch && chainMatch !== false ? 'valid' : 'invalid'}`}><ShieldCheck size={29} /></div>
         <p className="eyebrow">Independent verification</p>
-        <h1>{proofMatch && chainMatch !== false ? 'This matches the secured record' : 'Verification failed'}</h1>
+        <h1>{!proofMatch || chainMatch === false ? 'Verification failed' : chainMatch === true ? 'This matches the secured record' : 'These revealed fields are intact'}</h1>
         <p className="verify-intro">Only the fields chosen by the record owner are visible. Hidden fields remain private.</p>
         <div className="revealed-fields">
           {payload.fields.map((item) => <div key={item.field}><span>{fieldLabels[item.field]}</span><strong>{item.value || 'Not specified'}</strong><Check size={15} /></div>)}
